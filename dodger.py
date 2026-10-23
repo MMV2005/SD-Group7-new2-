@@ -1,6 +1,8 @@
 import pygame, random, sys
 from pygame.locals import *
 
+MENU = 15
+
 WINDOWWIDTH = 600
 WINDOWHEIGHT = 600
 TEXTCOLOR = (0, 0, 0)
