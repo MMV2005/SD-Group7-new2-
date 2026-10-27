@@ -1,10 +1,11 @@
 import pygame, random, sys
 from pygame.locals import *
 
-MENU = 15
+from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, ASSETS, RECORD_FILE,
+                      START_SPEED, MAX_SPEED, CEILING, FLOOR,
+                      CLOVER_TIME, POT_TIME, GUINNESS_TIME)
 
-WINDOWWIDTH = 600
-WINDOWHEIGHT = 600
+
 TEXTCOLOR = (0, 0, 0)
 BACKGROUNDCOLOR = (255, 255, 255)
 FPS = 60
