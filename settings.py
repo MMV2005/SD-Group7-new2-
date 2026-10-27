@@ -1,8 +1,8 @@
 """Reglages faciles a modifier pour Leprechaun Escape (Groupe 7)."""
 from pathlib import Path
 
-WIDTH = 960
-HEIGHT = 540
+WINDOWWIDTH = 960
+WINDOWHEIGHT = 540
 FPS = 60
 CEILING = 95
 FLOOR = 475
