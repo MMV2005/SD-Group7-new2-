@@ -133,10 +133,12 @@ while True:
         if baddieAddCounter == ADDNEWBADDIERATE:
             baddieAddCounter = 0
             baddieSize = random.randint(BADDIEMINSIZE, BADDIEMAXSIZE)
-            newBaddie = {'rect': pygame.Rect(random.randint(0, WINDOWWIDTH - baddieSize), 0 - baddieSize, baddieSize, baddieSize),
-                        'speed': random.randint(BADDIEMINSPEED, BADDIEMAXSPEED),
-                        'surface':pygame.transform.scale(baddieImage, (baddieSize, baddieSize)),
-                        }
+            newBaddie = {'rect': pygame.Rect(
+                WINDOWWIDTH,
+                random.randint(0, WINDOWHEIGHT - baddieSize), baddieSize, baddieSize),
+            'speed': random.randint(BADDIEMINSPEED, BADDIEMAXSPEED),
+            'surface': pygame.transform.scale(baddieImage, (baddieSize, baddieSize)),
+            }
 
             baddies.append(newBaddie)
 
@@ -150,10 +152,10 @@ while True:
         if moveDown and playerRect.bottom < WINDOWHEIGHT:
             playerRect.move_ip(0, PLAYERMOVERATE)
 
-        # Move the baddies down.
+        # Move the baddies from the right side of the screen.
         for b in baddies:
             if not reverseCheat and not slowCheat:
-                b['rect'].move_ip(0, b['speed'])
+                b['rect'].move_ip(-b['speed'], 0)
             elif reverseCheat:
                 b['rect'].move_ip(0, -5)
             elif slowCheat:
