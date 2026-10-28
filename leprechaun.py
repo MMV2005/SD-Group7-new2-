@@ -1,7 +1,7 @@
 import pygame, random, sys
 from pygame.locals import *
 
-from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, ASSETS, RECORD_FILE,
+from settings import (GRAVITY, MAX_FALL_SPEED, MAX_RISE_SPEED, THRUST, WINDOWWIDTH, WINDOWHEIGHT, FPS, ASSETS, RECORD_FILE,
                       START_SPEED, MAX_SPEED, CEILING, FLOOR,
                       CLOVER_TIME, POT_TIME, GUINNESS_TIME)
 
@@ -73,6 +73,9 @@ while True:
     baddies = []
     score = 0
     playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
+    playerY = float(playerRect.centery)
+    velocityY = 0 
+    thrusting = False
     moveLeft = moveRight = moveUp = moveDown = False
     reverseCheat = slowCheat = False
     baddieAddCounter = 0
@@ -90,12 +93,8 @@ while True:
                     reverseCheat = True
                 if event.key == K_x:
                     slowCheat = True
-                if event.key == K_UP or event.key == K_w:
-                    moveDown = False
-                    moveUp = True
-                if event.key == K_DOWN or event.key == K_s:
-                    moveUp = False
-                    moveDown = True
+                if event.key == K_SPACE:
+                    thrusting = True
 
             if event.type == KEYUP:
                 if event.key == K_z:
@@ -106,10 +105,8 @@ while True:
                     score = 0
                 if event.key == K_ESCAPE:
                         terminate()
-                if event.key == K_UP or event.key == K_w:
-                    moveUp = False
-                if event.key == K_DOWN or event.key == K_s:
-                    moveDown = False
+                if event.key == K_SPACE:
+                    thrusting = False
         
         # Add new baddies at the right of the screen, if needed.
         if not reverseCheat and not slowCheat:
@@ -127,14 +124,34 @@ while True:
             baddies.append(newBaddie)
 
         # Move the player around.
-        if moveLeft and playerRect.left > 0:
-            playerRect.move_ip(-1 * PLAYERMOVERATE, 0)
-        if moveRight and playerRect.right < WINDOWWIDTH:
-            playerRect.move_ip(PLAYERMOVERATE, 0)
         if moveUp and playerRect.top > 0:
             playerRect.move_ip(0, -1 * PLAYERMOVERATE)
         if moveDown and playerRect.bottom < WINDOWHEIGHT:
             playerRect.move_ip(0, PLAYERMOVERATE)
+        if thrusting:
+            velocityY -= THRUST
+        else:
+            velocityY += GRAVITY
+
+        # Plafonnement de la vitesse dans les deux sens
+        velocityY = max(-MAX_RISE_SPEED, min(MAX_FALL_SPEED, velocityY))
+
+        # Mise à jour de la position exacte (flottante)
+        playerY += velocityY
+
+        # Demi-hauteur de l'image : playerY est la position du centre
+        halfHeight = playerRect.height / 2
+
+        # Blocage au plafond et au sol, avec annulation de la vitesse
+        if playerY < halfHeight:
+            playerY = halfHeight
+            velocityY = 0.0
+        if playerY > WINDOWHEIGHT - halfHeight:
+            playerY = WINDOWHEIGHT - halfHeight
+            velocityY = 0.0
+
+        # Report de la position arrondie dans le rectangle (affichage + collisions)
+        playerRect.centery = round(playerY)
 
         # Move the baddies from the right side of the screen.
         for b in baddies:
