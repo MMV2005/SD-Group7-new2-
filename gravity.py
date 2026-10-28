@@ -1,10 +1,4 @@
 class JetpackPhysics():
-    """Gère le mouvement vertical d'un personnage de type jetpack.
-
-    La classe garde en mémoire la position exacte (flottante) et la vitesse
-    verticale. Elle ne dépend ni de pygame ni du reste du jeu : elle reçoit
-    des nombres et renvoie un nombre.
-    """
 
     def __init__(self, gravity=0.7, thrust=1.0, max_fall_speed=10, max_rise_speed=9):
         # Paramètres de réglage (pixels par frame, ou par frame au carré)
