@@ -4,7 +4,7 @@ from pygame.locals import *
 from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, ASSETS, RECORD_FILE,
                       START_SPEED, MAX_SPEED, CEILING, FLOOR,
                       CLOVER_TIME, POT_TIME, GUINNESS_TIME)
-
+from gravity import JetpackPhysics
 
 TEXTCOLOR = (0, 0, 0)
 BACKGROUNDCOLOR = (255, 255, 255)
@@ -75,12 +75,14 @@ pygame.display.update()
 waitForPlayerToPressKey()
 
 topScore = 0
+gravity = JetpackPhysics()
 while True:
     # Set up the start of the game.
     baddies = []
     score = 0
     playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
-    moveLeft = moveRight = moveUp = moveDown = False
+    gravity.reset(playerRect.centery)
+    thrusting = False
     reverseCheat = slowCheat = False
     baddieAddCounter = 0
     pygame.mixer.music.play(-1, 0.0)
@@ -97,12 +99,8 @@ while True:
                     reverseCheat = True
                 if event.key == K_x:
                     slowCheat = True
-                if event.key == K_UP or event.key == K_w:
-                    moveDown = False
-                    moveUp = True
-                if event.key == K_DOWN or event.key == K_s:
-                    moveUp = False
-                    moveDown = True
+                if event.key == K_SPACE:
+                    thrusting = True
 
             if event.type == KEYUP:
                 if event.key == K_z:
@@ -113,10 +111,8 @@ while True:
                     score = 0
                 if event.key == K_ESCAPE:
                         terminate()
-                if event.key == K_UP or event.key == K_w:
-                    moveUp = False
-                if event.key == K_DOWN or event.key == K_s:
-                    moveDown = False
+                if event.key == K_SPACE:
+                    thrusting = False
         
         # Add new baddies at the right of the screen, if needed.
         if not reverseCheat and not slowCheat:
@@ -135,17 +131,10 @@ while True:
             }
 
             baddies.append(newBaddie)
-            
-        # Move the player around.
-        if moveLeft and playerRect.left > 0:
-            playerRect.move_ip(-1 * PLAYERMOVERATE, 0)
-        if moveRight and playerRect.right < WINDOWWIDTH:
-            playerRect.move_ip(PLAYERMOVERATE, 0)
-        if moveUp and playerRect.top > 0:
-            playerRect.move_ip(0, -1 * PLAYERMOVERATE)
-        if moveDown and playerRect.bottom < WINDOWHEIGHT:
-            playerRect.move_ip(0, PLAYERMOVERATE)
 
+        # Move the player.
+        playerRect.centery = gravity.update(thrusting, playerRect.height, WINDOWHEIGHT)
+       
         # Move the baddies from the right side of the screen.
         for b in baddies:
             if not reverseCheat and not slowCheat:

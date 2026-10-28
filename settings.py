@@ -11,10 +11,10 @@ FLOOR = 475
 START_SPEED = 240
 MAX_SPEED = 425
 
-GRAVITY = 0.5        # accélération vers le bas, en pixels par frame au carré
-THRUST = 0.8         # accélération vers le haut quand espace est maintenue
+GRAVITY = 0.7        # accélération vers le bas, en pixels par frame au carré
+THRUST = 1.4         # accélération vers le haut quand espace est maintenue
 MAX_FALL_SPEED = 10  # vitesse de chute maximale (évite une chute trop violente)
-MAX_RISE_SPEED = 8   # vitesse de montée maximale
+MAX_RISE_SPEED = 9   # vitesse de montée maximale
 
 # Bonus: durees en secondes.
 CLOVER_TIME = 5.0
@@ -29,8 +29,3 @@ RECORD_FILE = ROOT / 'record.json'
 def clamp(number, minimum, maximum):
     """Limite un nombre a l'intervalle choisi."""
     return max(minimum, min(maximum, number))
-
-GRAVITY = 0.5        # accélération vers le bas, en pixels par frame au carré
-THRUST = 0.8         # accélération vers le haut quand espace est maintenue
-MAX_FALL_SPEED = 10  # vitesse de chute maximale (évite une chute trop violente)
-MAX_RISE_SPEED = 8   # vitesse de montée maximale
