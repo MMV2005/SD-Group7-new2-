@@ -8,8 +8,8 @@ from gravity import JetpackPhysics
 
 TEXTCOLOR = (0, 0, 0)
 BACKGROUNDCOLOR = (255, 255, 255)
-BADDIEMINSIZE = 120
-BADDIEMAXSIZE = 120
+BADDIEMINSIZE = 100
+BADDIEMAXSIZE = 100
 BADDIEMINSPEED = 1
 BADDIEMAXSPEED = 8
 ADDNEWBADDIERATE = 50
@@ -29,9 +29,15 @@ def waitForPlayerToPressKey():
                     terminate()
                 return
 
-def playerHasHitBaddie(playerRect, baddies):
+# Source : Documentation Pygame (https://www.pygame.org/docs/ref/mask.html)
+def playerHasHitBaddie(playerRect, playerMask, baddies):
     for b in baddies:
-        if playerRect.colliderect(b['rect']):
+        # Calcul de la distance (offset) entre le coin haut-gauche du joueur et celui de l'ennemi
+        offset_x = b['rect'].left - playerRect.left
+        offset_y = b['rect'].top - playerRect.top
+        
+        # Vérifie si les pixels non-transparents des deux masques se superposent
+        if playerMask.overlap(b['mask'], (offset_x, offset_y)) is not None:
             return True
     return False
 
@@ -56,9 +62,10 @@ gameOverSound = pygame.mixer.Sound('gameover.wav')
 pygame.mixer.music.load('background.mid')
 
 # Set up images.
-playerImage = pygame.image.load('player.png')
+playerImage = pygame.image.load('player.png').convert_alpha()
 playerRect = playerImage.get_rect()
-baddieImage = pygame.image.load('baddie.png')
+playerMask = pygame.mask.from_surface(playerImage) # Crée la hitbox au pixel près du joueur
+baddieImage = pygame.image.load('baddie.png').convert_alpha()
 
 # Show the "Start" screen.
 windowSurface.fill(BACKGROUNDCOLOR)
@@ -113,11 +120,14 @@ while True:
         if baddieAddCounter == ADDNEWBADDIERATE:
             baddieAddCounter = 0
             baddieSize = random.randint(BADDIEMINSIZE, BADDIEMAXSIZE)
+            # On redimensionne l'image d'abord pour pouvoir créer son masque juste après
+            scaledBaddie = pygame.transform.scale(baddieImage, (baddieSize, baddieSize))
             newBaddie = {'rect': pygame.Rect(
                 WINDOWWIDTH,
                 random.randint(0, WINDOWHEIGHT - baddieSize), baddieSize, baddieSize),
             'speed': random.randint(BADDIEMINSPEED, BADDIEMAXSPEED),
-            'surface': pygame.transform.scale(baddieImage, (baddieSize, baddieSize)),
+            'surface': scaledBaddie,
+            'mask': pygame.mask.from_surface(scaledBaddie), # Hitbox au pixel près de l'ennemi
             }
 
             baddies.append(newBaddie)
@@ -156,7 +166,7 @@ while True:
         pygame.display.update()
 
         # Check if any of the baddies have hit the player.
-        if playerHasHitBaddie(playerRect, baddies):
+        if playerHasHitBaddie(playerRect, playerMask, baddies):
             if score > topScore:
                 topScore = score # set new top score
             break
