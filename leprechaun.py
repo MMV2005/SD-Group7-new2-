@@ -90,12 +90,6 @@ while True:
                     reverseCheat = True
                 if event.key == K_x:
                     slowCheat = True
-                #if event.key == K_LEFT or event.key == K_a:
-                    #moveRight = False
-                    #moveLeft = True
-                #if event.key == K_RIGHT or event.key == K_d:
-                    #moveLeft = False
-                    #moveRight = True
                 if event.key == K_UP or event.key == K_w:
                     moveDown = False
                     moveUp = True
@@ -112,11 +106,6 @@ while True:
                     score = 0
                 if event.key == K_ESCAPE:
                         terminate()
-
-                #if event.key == K_LEFT or event.key == K_a:
-                    #moveLeft = False
-                #if event.key == K_RIGHT or event.key == K_d:
-                    #moveRight = False
                 if event.key == K_UP or event.key == K_w:
                     moveUp = False
                 if event.key == K_DOWN or event.key == K_s:
