@@ -7,15 +7,14 @@ FPS = 60
 CEILING = 95
 FLOOR = 475
 
-# Physique en pixels par seconde (les calculs utilisent dt).
-GRAVITY = 750
-COIN_THRUST = 1510
-MAX_RISE_SPEED = -390
-MAX_FALL_SPEED = 420
-
 # La difficulte evolue avec la distance parcourue.
 START_SPEED = 240
 MAX_SPEED = 425
+
+GRAVITY = 0.5        # accélération vers le bas, en pixels par frame au carré
+THRUST = 0.8         # accélération vers le haut quand espace est maintenue
+MAX_FALL_SPEED = 10  # vitesse de chute maximale (évite une chute trop violente)
+MAX_RISE_SPEED = 8   # vitesse de montée maximale
 
 # Bonus: durees en secondes.
 CLOVER_TIME = 5.0
