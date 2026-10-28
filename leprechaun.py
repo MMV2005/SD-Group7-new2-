@@ -1,10 +1,10 @@
 import pygame, random, sys
 from pygame.locals import *
 
-from settings import (GRAVITY, MAX_FALL_SPEED, MAX_RISE_SPEED, THRUST, WINDOWWIDTH, WINDOWHEIGHT, FPS, ASSETS, RECORD_FILE,
+from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, ASSETS, RECORD_FILE,
                       START_SPEED, MAX_SPEED, CEILING, FLOOR,
                       CLOVER_TIME, POT_TIME, GUINNESS_TIME)
-
+from gravity import JetpackPhysics
 
 TEXTCOLOR = (0, 0, 0)
 BACKGROUNDCOLOR = (255, 255, 255)
@@ -68,15 +68,14 @@ pygame.display.update()
 waitForPlayerToPressKey()
 
 topScore = 0
+gravity = JetpackPhysics()
 while True:
     # Set up the start of the game.
     baddies = []
     score = 0
     playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
-    playerY = float(playerRect.centery)
-    velocityY = 0 
+    gravity.reset(playerRect.centery)
     thrusting = False
-    moveLeft = moveRight = moveUp = moveDown = False
     reverseCheat = slowCheat = False
     baddieAddCounter = 0
     pygame.mixer.music.play(-1, 0.0)
@@ -123,36 +122,9 @@ while True:
 
             baddies.append(newBaddie)
 
-        # Move the player around.
-        if moveUp and playerRect.top > 0:
-            playerRect.move_ip(0, -1 * PLAYERMOVERATE)
-        if moveDown and playerRect.bottom < WINDOWHEIGHT:
-            playerRect.move_ip(0, PLAYERMOVERATE)
-        if thrusting:
-            velocityY -= THRUST
-        else:
-            velocityY += GRAVITY
-
-        # Plafonnement de la vitesse dans les deux sens
-        velocityY = max(-MAX_RISE_SPEED, min(MAX_FALL_SPEED, velocityY))
-
-        # Mise à jour de la position exacte (flottante)
-        playerY += velocityY
-
-        # Demi-hauteur de l'image : playerY est la position du centre
-        halfHeight = playerRect.height / 2
-
-        # Blocage au plafond et au sol, avec annulation de la vitesse
-        if playerY < halfHeight:
-            playerY = halfHeight
-            velocityY = 0.0
-        if playerY > WINDOWHEIGHT - halfHeight:
-            playerY = WINDOWHEIGHT - halfHeight
-            velocityY = 0.0
-
-        # Report de la position arrondie dans le rectangle (affichage + collisions)
-        playerRect.centery = round(playerY)
-
+        # Move the player.
+        playerRect.centery = gravity.update(thrusting, playerRect.height, WINDOWHEIGHT)
+       
         # Move the baddies from the right side of the screen.
         for b in baddies:
             if not reverseCheat and not slowCheat:
