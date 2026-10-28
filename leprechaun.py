@@ -152,9 +152,9 @@ while True:
             if not reverseCheat and not slowCheat:
                 b['rect'].move_ip(-b['speed'], 0)
             elif reverseCheat:
-                b['rect'].move_ip(0, -5)
+                b['rect'].move_ip(5, 0)
             elif slowCheat:
-                b['rect'].move_ip(0, 1)
+                b['rect'].move_ip(-1, 0)
 
         # Delete baddies that have fallen past the bottom.
         for b in baddies[:]:
