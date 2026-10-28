@@ -72,7 +72,7 @@ while True:
     # Set up the start of the game.
     baddies = []
     score = 0
-    playerRect.topleft = (WINDOWWIDTH / 2, WINDOWHEIGHT - 50)
+    playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
     moveLeft = moveRight = moveUp = moveDown = False
     reverseCheat = slowCheat = False
     baddieAddCounter = 0
