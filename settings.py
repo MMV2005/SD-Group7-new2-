@@ -30,3 +30,8 @@ RECORD_FILE = ROOT / 'record.json'
 def clamp(number, minimum, maximum):
     """Limite un nombre a l'intervalle choisi."""
     return max(minimum, min(maximum, number))
+
+GRAVITY = 0.5        # accélération vers le bas, en pixels par frame au carré
+THRUST = 0.8         # accélération vers le haut quand espace est maintenue
+MAX_FALL_SPEED = 10  # vitesse de chute maximale (évite une chute trop violente)
+MAX_RISE_SPEED = 8   # vitesse de montée maximale
