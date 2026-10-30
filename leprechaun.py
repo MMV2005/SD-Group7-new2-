@@ -3,7 +3,7 @@ from pygame.locals import *
 
 from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, ASSETS, RECORD_FILE,
                       START_SPEED, MAX_SPEED, CEILING, FLOOR,
-                      CLOVER_TIME, POT_TIME, GUINNESS_TIME)
+                      CLOVER_TIME, POT_TIME, GUINNESS_TIME, SPEED_PER_METRE, METRES_PER_PIXEL)
 from gravity import JetpackPhysics
 
 TEXTCOLOR = (0, 0, 0)

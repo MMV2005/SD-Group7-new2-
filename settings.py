@@ -10,6 +10,8 @@ FLOOR = 475
 # La difficulte evolue avec la distance parcourue.
 START_SPEED = 240
 MAX_SPEED = 425
+SPEED_PER_METRE = 0.045  # +45 pixels/seconde tous les 1000 metres
+METRES_PER_PIXEL = 0.1
 
 # Bonus: durees en secondes.
 CLOVER_TIME = 5.0
