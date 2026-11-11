@@ -64,7 +64,7 @@ def initGameAssets():
 
     font = pygame.font.SysFont(None, 48)
     gameOverSound = pygame.mixer.Sound('assets/gameover.wav')
-    #pygame.mixer.music.load('assets/background.mid')
+    pygame.mixer.music.load('assets/background.mid')
 
     playerImage = pygame.image.load('assets/player.png').convert_alpha()
     playerRect = playerImage.get_rect()
