@@ -3,7 +3,7 @@ from pathlib import Path
 from reglages_personnages import GRAVITY, THRUST, MAX_RISE, MAX_FALL
 
 # settings.2 : Fenetre et limites jouables.
-WIDTH, HEIGHT, FPS = 960, 540, 60           # Taille de la fenetre (largeur et hauteur en pixels) et nombre d'images par seconde (FPS).
+WINDOWWIDTH, WINDOWHEIGHT, FPS = 960, 540, 60           # Taille de la fenetre (largeur et hauteur en pixels) et nombre d'images par seconde (FPS).
 CEILING, FLOOR = 90, 475                    # Limites jouables (en pixels) : plafond et sol. Le personnage ne peut pas depasser ces limites.
 ROOT = Path(__file__).resolve().parent      # Trouver le dossier contenant ce fichier Python.
                                         #__file__ : contient le chemin du fichier Python dans lequel cette ligne est écrite. Ici, elle désigne settings.py.
