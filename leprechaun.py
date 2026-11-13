@@ -2,7 +2,7 @@ import pygame, random, sys
 from pygame.locals import *
 
 from menu import afficher_menu
-from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, ASSETS, RECORD_FILE,
+from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, RECORD_FILE,
                       START_SPEED, MAX_SPEED, CEILING, FLOOR,
                       CLOVER_TIME, POT_TIME, GUINNESS_TIME)
 from gravity import JetpackPhysics
@@ -59,14 +59,14 @@ pygame.mouse.set_visible(False)
 font = pygame.font.SysFont(None, 48)
 
 # Set up sounds.
-gameOverSound = pygame.mixer.Sound('gameover.wav')
-pygame.mixer.music.load('background.mid')
+gameOverSound = pygame.mixer.Sound('assets/gameover.wav')
+pygame.mixer.music.load('assets/background.mid')
 
 # Set up images.
-playerImage = pygame.image.load('player.png').convert_alpha()
+playerImage = pygame.image.load('assets/player.png').convert_alpha()
 playerRect = playerImage.get_rect()
 playerMask = pygame.mask.from_surface(playerImage) # Crée la hitbox au pixel près du joueur
-baddieImage = pygame.image.load('baddie.png').convert_alpha()
+baddieImage = pygame.image.load('assets/baddie.png').convert_alpha()
 
 # Show the "Start" screen.
 windowSurface.fill(BACKGROUNDCOLOR)
