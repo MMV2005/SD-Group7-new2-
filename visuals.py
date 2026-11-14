@@ -11,7 +11,7 @@ BACKGROUND_FILE = ASSETS / 'world' / 'bg_meadow.png'
 BACKGROUND_HORIZON = 800 # y of the ground line in the SOURCE image (pixels).
 GOOSE_FRAMES_FOLDER = ASSETS / 'goose'
 ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du personnage (FPS).
-FRAME_SEQUENCE = (0, 1, 2, 1)  # Order in which the 3 poses are played.
+
 
 class Visuals:
     def __init__(self):
