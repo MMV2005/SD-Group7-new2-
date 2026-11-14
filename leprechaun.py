@@ -4,6 +4,7 @@ from pygame.locals import *
 from menu import afficher_menu
 from settings import*
 from gravity import JetpackPhysics
+from visuals import Visuals
 
 TEXTCOLOR = (0, 0, 0)
 BACKGROUNDCOLOR = (255, 255, 255)
@@ -61,9 +62,9 @@ gameOverSound = pygame.mixer.Sound('assets/gameover.wav')
 pygame.mixer.music.load('assets/background.mid')
 
 # Set up images.
-playerImage = pygame.image.load('assets/player.png').convert_alpha()
-playerRect = playerImage.get_rect()
-playerMask = pygame.mask.from_surface(playerImage) # Crée la hitbox au pixel près du joueur
+visuals = Visuals()               # loads the 3 frames and their masks
+playerRect = visuals.get_rect()
+playerMask = pygame.mask.from_surface(visuals.frames[0]) # Crée la hitbox au pixel près du joueur
 baddieImage = pygame.image.load('assets/baddie.png').convert_alpha()
 
 # Show the "Start" screen.
@@ -83,6 +84,8 @@ while True:
 
     while True: # The game loop runs while the game part is playing.
         score += 1 # Increase score.
+
+        visuals.update_pose()
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -135,7 +138,7 @@ while True:
         drawText('Top Score: %s' % (topScore), font, windowSurface, 10, 40)
 
         # Draw the player's rectangle.
-        windowSurface.blit(playerImage, playerRect)
+        visuals.draw_player(windowSurface, playerRect)
 
         # Draw each baddie.
         for b in baddies:
