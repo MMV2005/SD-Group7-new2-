@@ -1,7 +1,7 @@
 from settings import CEILING, FLOOR, clamp
 class JetpackPhysics():
 
-    def _init_(self, gravity=0.2, thrust=0.5, max_fall_speed=11, max_rise_speed=17):
+    def __init__(self, gravity=0.2, thrust=0.5, max_fall_speed=11, max_rise_speed=17):
         # Paramètres de réglage (pixels par frame, ou par frame au carré)
         self.gravity = gravity                # accélération vers le bas
         self.thrust = thrust                  # accélération vers le haut (espace maintenue)

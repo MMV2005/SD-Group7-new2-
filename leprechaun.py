@@ -6,7 +6,7 @@ from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
 
-TEXTCOLOR = (0, 0, 0)
+TEXTCOLOR = (255, 255, 255)
 BACKGROUNDCOLOR = (255, 255, 255)
 BADDIEMINSIZE = 100
 BADDIEMAXSIZE = 100
@@ -110,7 +110,7 @@ while True:
             scaledBaddie = pygame.transform.scale(baddieImage, (baddieSize, baddieSize))
             newBaddie = {'rect': pygame.Rect(
                 WINDOWWIDTH,
-                random.randint(0, WINDOWHEIGHT - baddieSize), baddieSize, baddieSize),
+                random.randint(CEILING, FLOOR - baddieSize), baddieSize, baddieSize),
             'speed': random.randint(BADDIEMINSPEED, BADDIEMAXSPEED),
             'surface': scaledBaddie,
             'mask': pygame.mask.from_surface(scaledBaddie), # Hitbox au pixel près de l'ennemi
@@ -132,6 +132,14 @@ while True:
 
         # Draw the game world on the window.
         windowSurface.fill(BACKGROUNDCOLOR)
+
+        # Bandeau du plafond (de 0 à CEILING)
+        pygame.draw.rect(windowSurface, (10, 35, 38), (0, 0, WINDOWWIDTH, CEILING))
+        pygame.draw.line(windowSurface, (25, 60, 60), (0, CEILING), (WINDOWWIDTH, CEILING), 2)
+
+        # Zone du sol (de FLOOR jusqu'en bas de l'écran) et ligne beige/dorée
+        pygame.draw.rect(windowSurface, (4, 18, 22), (0, FLOOR, WINDOWWIDTH, WINDOWHEIGHT - FLOOR))
+        pygame.draw.line(windowSurface, (180, 175, 130), (0, FLOOR), (WINDOWWIDTH, FLOOR), 2)
 
         # Draw the score and top score.
         drawText('Score: %s' % (score), font, windowSurface, 10, 0)
