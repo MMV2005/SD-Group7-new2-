@@ -7,7 +7,7 @@ from gravity import JetpackPhysics
 from visuals import Visuals
 
 TEXTCOLOR = (255, 255, 255)
-BACKGROUNDCOLOR = (255, 255, 255)
+BACKGROUNDCOLOR = (5, 25, 30)
 BADDIEMINSIZE = 100
 BADDIEMAXSIZE = 100
 BADDIEMINSPEED = 1
@@ -65,7 +65,6 @@ pygame.mixer.music.load('assets/background.mid')
 visuals = Visuals()               # loads the 3 frames and their masks
 playerRect = visuals.get_rect()
 playerMask = pygame.mask.from_surface(visuals.frames[0]) # Crée la hitbox au pixel près du joueur
-baddieImage = pygame.image.load('assets/baddie.png').convert_alpha()
 
 # Show the "Start" screen.
 afficher_menu(windowSurface, 0, None)
@@ -101,21 +100,30 @@ while True:
                 if event.key == K_SPACE:
                     thrusting = False
 
-        # Add new baddies at the right of the screen, if needed.
-        baddieAddCounter += 1
-        if baddieAddCounter == ADDNEWBADDIERATE:
-            baddieAddCounter = 0
-            baddieSize = random.randint(BADDIEMINSIZE, BADDIEMAXSIZE)
-            # On redimensionne l'image d'abord pour pouvoir créer son masque juste après
-            scaledBaddie = pygame.transform.scale(baddieImage, (baddieSize, baddieSize))
-            newBaddie = {'rect': pygame.Rect(
-                WINDOWWIDTH,
-                random.randint(CEILING, FLOOR - baddieSize), baddieSize, baddieSize),
-            'speed': random.randint(BADDIEMINSPEED, BADDIEMAXSPEED),
-            'surface': scaledBaddie,
-            'mask': pygame.mask.from_surface(scaledBaddie), # Hitbox au pixel près de l'ennemi
+        # Nombre maximum d'oies à l'écran selon l'avancement (worlds.11)
+        distance_meters = score 
+        if distance_meters < TWO_OBSTACLES_DISTANCE:
+            max_baddies = 1
+        elif distance_meters < THREE_OBSTACLES_DISTANCE:
+            max_baddies = 2
+        else: 
+            max_baddies = 3
+        # 2. Vérifier l'écart minimal (OBSTACLE_GAP_MIN = 280 px) avec la dernière oie
+        can_spawn = True
+        if baddies:
+            last_x = max(b['rect'].centerx for b in baddies)
+            if (WINDOWWIDTH + 80) - last_x < OBSTACLE_GAP_MIN:
+                can_spawn = False
+        
+        #3. Faire apparaître une nouvelle oie dès que le quota (< max_baddies) et l'écart (280 px) le permettent
+        if len(baddies) < max_baddies and can_spawn:
+            goose_y = random.choice(MEADOW_HEIGHTS)
+            newBaddie = {
+                'rect': visuals.get_goose_rect(WINDOWWIDTH + 80, goose_y),
+                'speed': round(START_SPEED / FPS),
+                'mask': visuals.goose_mask,
+                'age': 0.0,
             }
-
             baddies.append(newBaddie)
 
         # Move the player.
@@ -124,6 +132,7 @@ while True:
         # Move the baddies from the right side of the screen.
         for b in baddies:
             b['rect'].move_ip(-b['speed'], 0)
+            b['age'] += 1 / FPS  # Incrémenter l'âge de l'oie pour l'animation des ailes
 
         # Supprimer les obstacles entièrement sortis à gauche.
         for b in baddies[:]:
@@ -150,12 +159,11 @@ while True:
 
         # Draw each baddie.
         for b in baddies:
-            windowSurface.blit(b['surface'], b['rect'])
-
+            visuals.draw_goose(windowSurface, b)
         pygame.display.update()
 
         # Check if any of the baddies have hit the player.
-        if playerHasHitBaddie(playerRect, playerMask, baddies):
+        if playerHasHitBaddie(playerRect, visuals.mask, baddies):
             if score > topScore:
                 topScore = score # set new top score
             break
