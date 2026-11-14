@@ -1,7 +1,7 @@
 """Visuals - player 3-frame animation, loaded when Visuals() is created."""
-import pygame
+import pygame, math, random
 from settings import *
-from reglages_personnages import ANIMATION_FPS,GOOSE_FPS
+from reglages_personnages import *
 PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
 ANIMATION_FPS = 9 # Nombre d'images par seconde pour l'animation du personnage (FPS).
 FRAME_SEQUENCE = (0, 1, 2, 1) # Order in which the 3 poses are played.
@@ -15,16 +15,10 @@ ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du pe
 
 class Visuals:
     def __init__(self):
-        # IMPORTANT: convert_alpha() needs the display to exist already,
-        # so Visuals() must be created AFTER pygame.display.set_mode(...).
-        # Load the 3 frames once at startup (never inside the game loop).
-        # convert_alpha() keeps PNG transparency and speeds up drawing.
         self.frames = [
             pygame.image.load(str(PLAYER_FRAMES_FOLDER / f'vol_{i}.png')).convert_alpha()
-            for i in range(3)
-        ]
-        # One pixel-perfect mask per frame: each pose has a slightly
-        # different silhouette, so each needs its own collision mask.
+            for i in range(3)]
+        
         self.masks = [pygame.mask.from_surface(frame) for frame in self.frames]
 
         #Image and mask of the pose currently displayed. They are refreshed
@@ -37,10 +31,13 @@ class Visuals:
 
         self.goose_frames = [
             pygame.image.load(str(GOOSE_FRAMES_FOLDER / f'goose_{i}.png')).convert_alpha()
-            for i in range(2)
-        ]
+            for i in range(2)]
         # Un seul masque fixe (les ailes qui battent ne modifient pas la hitbox)
         self.goose_mask = pygame.mask.from_surface(self.goose_frames[0])
+
+        self.coins = []               # particules actuellement à l'écran
+        self.jet_accumulator = 0.0    # reste fractionnaire : JET_RATE / FPS n'est pas entier
+
     def get_rect(self):
         """Return a new rect of the player's size (same for the 3 poses)."""
         return self.frames[0].get_rect()
@@ -84,19 +81,55 @@ class Visuals:
         """Draw the background. Must be called BEFORE anything else each frame."""
         screen.blit(self.background, (0, 0))
 
-    # visuals.12 : Dessine jet de pièces.
-    def player(self, screen, player, time, skin='classic'):
-        self.effect_glow(screen, player, time)
-        # Beaucoup de petites pieces projetees, plus denses pres de la sortie.
-        for x, y, vx, vy, life, initial, angle in player.particles:
-            height = max(3, round(10 * life / initial))
-            width = max(2, round(height * abs(math.cos(angle))))
-            pygame.draw.ellipse(screen, (242, 171, 24), (round(x), round(y), width, height))
-            pygame.draw.ellipse(screen, GOLD, (round(x), round(y), width, height), 1)
-            if width > 4:
-                pygame.draw.line(screen, WHITE, (round(x + 2), round(y + 2)), (round(x + 2), round(y + height - 2)))
-    def draw_player(self, screen, player_rect): #Draw the current pose at the position given by player_rect.
-        screen.blit(self.image, player_rect)
+    def reset_jet(self):
+    """Vide le jet : à appeler au début de chaque partie."""
+    self.coins = []
+    self.jet_accumulator = 0.0
+
+    def update_jet(self, player_rect, thrusting):
+        """Crée et fait avancer les pièces : à appeler une fois par image."""
+        dt = 1 / FPS    # pas de temps fixe (FPS vient de settings)
+
+        # Création : JET_RATE pièces par seconde, plafonnées à JET_MAX
+        if thrusting:
+            self.jet_accumulator += JET_RATE * dt
+            while self.jet_accumulator >= 1 and len(self.coins) < JET_MAX:
+                self.jet_accumulator -= 1
+                life = random.uniform(*JET_LIFE)
+                self.coins.append({
+                    'x': player_rect.left + JET_OFFSET_X,
+                    'y': player_rect.centery + player_rect.height * JET_OFFSET_Y,
+                    'vx': -random.uniform(*JET_SPEED),    # projetée vers l'arrière
+                    'vy': random.uniform(*JET_SPREAD),    # dispersion verticale
+                    'life': life, 'initial': life,        # 'initial' sert au rétrécissement
+                    'angle': random.uniform(0, math.tau), # phase de rotation aléatoire
+                })
+            if len(self.coins) >= JET_MAX:
+                self.jet_accumulator = 0.0                # évite l'accumulation au plafond
+
+        # Mise à jour physique : intégration d'Euler en secondes
+        for c in self.coins:
+            c['vy'] += JET_GRAVITY * dt
+            c['x'] += c['vx'] * dt
+            c['y'] += c['vy'] * dt
+            c['angle'] += 24 * dt     # environ 0,4 rad par image à 60 FPS
+            c['life'] -= dt
+
+        # Suppression des pièces expirées ou arrivées au sol
+        self.coins = [c for c in self.coins if c['life'] > 0 and c['y'] <= FLOOR]
+
+    def draw_jet(self, screen):
+        """Dessine les pièces du jet."""
+        for c in self.coins:
+            # Hauteur proportionnelle à la vie restante : la pièce rétrécit
+            h = max(3, round(10 * c['life'] / c['initial']))
+            # Largeur en |cos(angle)| : effet de pièce qui tourne sur elle-même
+            w = max(2, round(h * abs(math.cos(c['angle']))))
+            rect = (round(c['x']), round(c['y']), w, h)
+            pygame.draw.ellipse(screen, COIN_FILL, rect)
+            pygame.draw.ellipse(screen, COIN_EDGE, rect, 1)
+
+    
     #Visuals.14 
     def get_goose_rect(self, center_x, center_y): #Return a rect for a new goose centered on (center_x, center_y).
         return self.goose_frames[0].get_rect(center=(center_x, center_y))
