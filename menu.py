@@ -53,7 +53,7 @@ def afficher_menu(surface, meilleur_score, dernier_score):
         # Efface l'image précédente avec un fond vert foncé.
         surface.fill((18, 48, 36))
         # Affiche le nom du jeu en doré.
-        texte_centre('leprauchen', police_titre, (255, 210, 90), hauteur // 5)
+        texte_centre('leprechaun', police_titre, (255, 210, 90), hauteur // 5)
         # La f-string insère la valeur du meilleur score dans le texte.
         texte_centre(f'Meilleur score : {meilleur_score}', police, (255, 255, 255), hauteur * 2 // 5)
         # None signifie qu'aucune partie n'a encore été jouée.
