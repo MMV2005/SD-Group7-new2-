@@ -20,3 +20,11 @@ GOOSE_FPS = 6               # Images par seconde ; deux poses par oie.
 MAGNET_GLOW_COLOR = (255, 4, 4) # Couleur du halo de l'aimant bonus (RGB).
 BEER_GLOW_COLOR = (255, 208, 12) # Couleur du halo de la bière bonus (RGB).
 GLOW_OPACITY = 190          # Alpha maximal du halo, entre 0 et 255.
+
+# Couleurs des pièces du jet
+COIN_FILL = (242, 171, 24)    # corps doré
+COIN_EDGE = (255, 214, 99)    # contour clair
+
+# Point d'apparition du jet, relatif au rectangle du joueur
+JET_OFFSET_X = 8              # pixels depuis le bord gauche (arrière du sprite)
+JET_OFFSET_Y = 0.25           # fraction de la hauteur, depuis le centre vers le bas

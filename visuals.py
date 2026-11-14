@@ -1,8 +1,7 @@
 """Visuals - player 3-frame animation, loaded when Visuals() is created."""
 import pygame, math, random
 from settings import *
-from reglages_personnages import*
-PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
+from reglages_personnages import *
 ANIMATION_FPS = 9 # Nombre d'images par seconde pour l'animation du personnage (FPS).
 FRAME_SEQUENCE = (0, 1, 2, 1) # Order in which the 3 poses are played.
 
