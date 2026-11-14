@@ -2,8 +2,8 @@
 import pygame, math, random
 from settings import *
 from reglages_personnages import *
-ANIMATION_FPS = 9 # Nombre d'images par seconde pour l'animation du personnage (FPS).
-FRAME_SEQUENCE = (0, 1, 2, 1) # Order in which the 3 poses are played.
+
+PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
 
 #--- fond ---
 BACKGROUND_FILE = ASSETS / 'world' / 'bg_meadow.png'

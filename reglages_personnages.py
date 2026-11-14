@@ -6,6 +6,7 @@ MAX_FALL = 520              # Vitesse maximale de chute (pixel/seconde).
 
 # reglages_personnages.2 : Animation : 3 poses, jouees dans l'ordre 0, 1, 2, 1.
 ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du personnage (FPS).
+FRAME_SEQUENCE = (0, 1, 2, 1)  # Ordre dans lequel les 3 poses sont jouées.
 
 # reglages_personnage.3 : Jet decoratif : ces pieces ne sont ni gagnées, ni depensées.
 JET_RATE = 145              # Nombre de particules par seconde à pleine puissance.
