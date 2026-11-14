@@ -67,12 +67,8 @@ playerMask = pygame.mask.from_surface(playerImage) # Crée la hitbox au pixel pr
 baddieImage = pygame.image.load('assets/baddie.png').convert_alpha()
 
 # Show the "Start" screen.
-windowSurface.fill(BACKGROUNDCOLOR)
-drawText('Dodger', font, windowSurface, (WINDOWWIDTH / 3), (WINDOWHEIGHT / 3))
-drawText('Press a key to start.', font, windowSurface, (WINDOWWIDTH / 3) - 30, (WINDOWHEIGHT / 3) + 50)
+afficher_menu(windowSurface, 0, None)
 pygame.display.update()
-waitForPlayerToPressKey()
-
 topScore = 0
 gravity = JetpackPhysics()
 while True:
