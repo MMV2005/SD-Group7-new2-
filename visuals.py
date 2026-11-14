@@ -1,7 +1,7 @@
 """Visuals - player 3-frame animation, loaded when Visuals() is created."""
 import pygame, math, random
 from settings import *
-from reglages_personnages import *
+from reglages_personnages import*
 PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
 ANIMATION_FPS = 9 # Nombre d'images par seconde pour l'animation du personnage (FPS).
 FRAME_SEQUENCE = (0, 1, 2, 1) # Order in which the 3 poses are played.
@@ -82,9 +82,9 @@ class Visuals:
         screen.blit(self.background, (0, 0))
 
     def reset_jet(self):
-    """Vide le jet : à appeler au début de chaque partie."""
-    self.coins = []
-    self.jet_accumulator = 0.0
+        """Vide le jet : à appeler au début de chaque partie."""
+        self.coins = []
+        self.jet_accumulator = 0.0
 
     def update_jet(self, player_rect, thrusting):
         """Crée et fait avancer les pièces : à appeler une fois par image."""
