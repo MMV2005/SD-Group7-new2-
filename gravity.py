@@ -1,3 +1,4 @@
+from settings import CEILING, FLOOR, clamp
 class JetpackPhysics():
 
     def __init__(self, gravity=0.2, thrust=0.5, max_fall_speed=11, max_rise_speed=17):
@@ -16,7 +17,7 @@ class JetpackPhysics():
         self.y = float(center_y)
         self.velocity = 0.0
 
-    def update(self, thrusting, sprite_height, window_height):
+    def update(self, thrusting, sprite_height, window_height = None):
         """Avance la physique d'une frame et renvoie la position verticale du centre,
         arrondie en entier (prête à être donnée à un pygame.Rect)."""
 
@@ -26,20 +27,19 @@ class JetpackPhysics():
         else:
             self.velocity += self.gravity
 
-        # 2. Plafonnement de la vitesse dans les deux sens
-        self.velocity = max(-self.max_rise_speed, min(self.max_fall_speed, self.velocity))
-
+        # 2. Plafonnement de la vitesse avec clamp (settings.7)
+        self.velocity = clamp(self.velocity, -self.max_rise_speed, self.max_fall_speed)
         # 3. Mise à jour de la position exacte (flottante)
         self.y += self.velocity
 
-        # 4. Blocage au plafond et au sol : self.y est la position du centre,
+        # 4. Blocage à CEILING (90) et FLOOR (475) : self.y est la position du centre,
         #    donc on garde une demi-hauteur de marge de chaque côté
         half = sprite_height / 2
-        if self.y < half:
-            self.y = half
+        if self.y < CEILING + half:
+            self.y = CEILING + half
             self.velocity = 0.0
-        if self.y > window_height - half:
-            self.y = window_height - half
+        elif self.y > FLOOR - half:
+            self.y = FLOOR - half
             self.velocity = 0.0
 
         # 5. Position entière pour l'affichage et les collisions
