@@ -1,4 +1,4 @@
-import pygame, random, sys
+import pygame, random, sys, math
 from pygame.locals import *
 
 from menu import afficher_menu
@@ -80,6 +80,8 @@ while True:
     gravity.reset(playerRect.centery)
     thrusting = False
     baddieAddCounter = 0
+    coins = []                 # particules du jet de pièces
+    jet_accumulator = 0.0      # reste fractionnaire : 145/60 = 2,4 pièces par image
     pygame.mixer.music.play(-1, 0.0)
 
     while True: # The game loop runs while the game part is playing.
@@ -121,6 +123,35 @@ while True:
         # Move the player.
         playerRect.centery = gravity.update(thrusting, playerRect.height, WINDOWHEIGHT)
 
+        #jet de pièces 
+        dt = 1 / FPS               # pas de temps fixe, puisque main.py tourne à FPS constant
+        # Création : JET_RATE particules par seconde, plafonnées à JET_MAX
+        if thrusting:
+            jet_accumulator += JET_RATE * dt
+            while jet_accumulator >= 1 and len(coins) < JET_MAX:
+                jet_accumulator -= 1
+                life = random.uniform(*JET_LIFE)
+                coins.append({
+                    'x': playerRect.left + 8,
+                    'y': playerRect.centery + playerRect.height * 0.25,
+                    'vx': -random.uniform(*JET_SPEED),      # vers l'arrière
+                    'vy': random.uniform(*JET_SPREAD),      # dispersion verticale
+                    'life': life, 'initial': life,
+                    'angle': random.uniform(0, math.tau),
+                })
+            if len(coins) >= JET_MAX:
+                jet_accumulator = 0.0                       # évite l'accumulation quand le plafond est atteint
+
+        # Mise à jour : mêmes équations qu'avant, mais en secondes
+        for c in coins[:]:
+            c['vy'] += JET_GRAVITY * dt
+            c['x'] += c['vx'] * dt
+            c['y'] += c['vy'] * dt
+            c['angle'] += 24 * dt # environ 0,4 rad par image
+            c['life'] -= dt
+            if c['life'] <= 0 or c['y'] > FLOOR:
+                coins.remove(c)
+
         # Move the baddies from the right side of the screen.
         for b in baddies:
             b['rect'].move_ip(-b['speed'], 0)
@@ -131,21 +162,28 @@ while True:
                 baddies.remove(b)
 
         # Draw the game world on the window.
-        windowSurface.fill(BACKGROUNDCOLOR)
+        visuals.draw_background(windowSurface)
 
         # Bandeau du plafond (de 0 à CEILING)
         pygame.draw.rect(windowSurface, (10, 35, 38), (0, 0, WINDOWWIDTH, CEILING))
         pygame.draw.line(windowSurface, (25, 60, 60), (0, CEILING), (WINDOWWIDTH, CEILING), 2)
 
-        # Zone du sol (de FLOOR jusqu'en bas de l'écran) et ligne beige/dorée
-        pygame.draw.rect(windowSurface, (4, 18, 22), (0, FLOOR, WINDOWWIDTH, WINDOWHEIGHT - FLOOR))
-        pygame.draw.line(windowSurface, (180, 175, 130), (0, FLOOR), (WINDOWWIDTH, FLOOR), 2)
-
         # Draw the score and top score.
         drawText('Score: %s' % (score), font, windowSurface, 10, 0)
         drawText('Top Score: %s' % (topScore), font, windowSurface, 10, 40)
 
-        # Draw the player's rectangle.
+        
+        # Dessin des pièces du jet (avant le joueur, pour qu'elles semblent en sortir)
+        for c in coins:
+            # Taille proportionnelle à la durée de vie restante : elles rétrécissent en fin de vie
+            h = max(3, round(10 * c['life'] / c['initial']))
+            # Largeur en |cos(angle)| : simule la pièce qui tourne sur elle-même
+            w = max(2, round(h * abs(math.cos(c['angle']))))
+            rect = (round(c['x']), round(c['y']), w, h)
+            pygame.draw.ellipse(windowSurface, (242, 171, 24), rect)       # corps doré
+            pygame.draw.ellipse(windowSurface, (255, 214, 99), rect, 1)    # contour clair
+
+        # Draw the player.
         visuals.draw_player(windowSurface, playerRect)
 
         # Draw each baddie.
