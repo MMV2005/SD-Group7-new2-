@@ -1,6 +1,6 @@
 # settings.1 : Préparation du module.
 from pathlib import Path
-from reglages_personnages import GRAVITY, THRUST, MAX_RISE, MAX_FALL
+from reglages_personnages import *
 
 # settings.2 : Fenetre et limites jouables.
 WINDOWWIDTH, WINDOWHEIGHT, FPS = 960, 540, 60           # Taille de la fenetre (largeur et hauteur en pixels) et nombre d'images par seconde (FPS).
