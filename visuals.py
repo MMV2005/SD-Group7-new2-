@@ -1,7 +1,7 @@
 """Visuals - player 3-frame animation, loaded when Visuals() is created."""
 import pygame
 from settings import *
-#from reglages_personnages import ANIMATION_FPS, FRAME_SEQUENCE
+from reglages_personnages import ANIMATION_FPS,GOOSE_FPS
 PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
 ANIMATION_FPS = 9 # Nombre d'images par seconde pour l'animation du personnage (FPS).
 FRAME_SEQUENCE = (0, 1, 2, 1) # Order in which the 3 poses are played.
@@ -9,6 +9,9 @@ FRAME_SEQUENCE = (0, 1, 2, 1) # Order in which the 3 poses are played.
 #--- fond ---
 BACKGROUND_FILE = ASSETS / 'world' / 'bg_meadow.png'
 BACKGROUND_HORIZON = 800 # y of the ground line in the SOURCE image (pixels).
+GOOSE_FRAMES_FOLDER = ASSETS / 'goose'
+ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du personnage (FPS).
+FRAME_SEQUENCE = (0, 1, 2, 1)  # Order in which the 3 poses are played.
 
 class Visuals:
     def __init__(self):
@@ -32,6 +35,12 @@ class Visuals:
         # --- fond, chargé une seule fois ---
         self.background = self.load_background()
 
+        self.goose_frames = [
+            pygame.image.load(str(GOOSE_FRAMES_FOLDER / f'goose_{i}.png')).convert_alpha()
+            for i in range(2)
+        ]
+        # Un seul masque fixe (les ailes qui battent ne modifient pas la hitbox)
+        self.goose_mask = pygame.mask.from_surface(self.goose_frames[0])
     def get_rect(self):
         """Return a new rect of the player's size (same for the 3 poses)."""
         return self.frames[0].get_rect()
@@ -86,3 +95,11 @@ class Visuals:
             pygame.draw.ellipse(screen, GOLD, (round(x), round(y), width, height), 1)
             if width > 4:
                 pygame.draw.line(screen, WHITE, (round(x + 2), round(y + 2)), (round(x + 2), round(y + height - 2)))
+    def draw_player(self, screen, player_rect): #Draw the current pose at the position given by player_rect.
+        screen.blit(self.image, player_rect)
+    #Visuals.14 
+    def get_goose_rect(self, center_x, center_y): #Return a rect for a new goose centered on (center_x, center_y).
+        return self.goose_frames[0].get_rect(center=(center_x, center_y))
+    def draw_goose(self, screen, baddie): #Draw goose_0 or goose_1 depending on the goose's age (GOOSE_FPS = 6).
+        index = int(baddie['age'] * GOOSE_FPS) % 2
+        screen.blit(self.goose_frames[index], baddie['rect'])

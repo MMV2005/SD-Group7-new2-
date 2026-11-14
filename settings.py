@@ -16,8 +16,8 @@ RECORD_FILE = ROOT / 'record.json'          # Définir le chemin du fichier util
 
 # settings.3 : Paramètres de déplacements (augmentation de vitesse).
 START_SPEED, MAX_SPEED = 300, 580          # Vitesse de départ et vitesse maximale (en pixels par seconde).
-SPEED_PER_METRE = 0.045                    # +45 pixels/seconde tous les 1000 metres
-METRES_PER_PIXEL = 0.1                     # Conversion de pixels à metres (1 pixel = 0.1 metre)
+SPEED_PER_METER = 0.045                    # +45 pixels/seconde tous les 1000 metres
+METERS_PER_PIXEL = 0.1                     # Conversion de pixels à metres (1 pixel = 0.1 metre)
 
 # settings.4 : Mondes et transitions.
 PORTAL_MIN, PORTAL_MAX = 1000, 1400        # Distance minimale et maximale entre deux portails (en metres).
@@ -64,8 +64,8 @@ LAUNCHER_BY_WORLD = {'pub': 'cannon',
                       'cave': 'flame'}              # Type de lanceur pour chaque monde. Le type de lanceur doit correspondre à une clé du dictionnaire LAUNCHERS.
 
 # settings.10 : Régler la densité progressive des obstacles.
-TWO_OBSTACLES_DISTANCE = 600                        # Jusqu'à 2 obstacles maximum dès 600 m.
-THREE_OBSTACLES_DISTANCE = 1800                     # Jusqu'à 3 obstacles maximumdès 1800 m.
+TWO_OBSTACLES_DISTANCE = 2500                        # Jusqu'à 2 obstacles maximum dès 2500 m.
+THREE_OBSTACLES_DISTANCE = 4000                    # Jusqu'à 3 obstacles maximumdès 4000 m.
 
 DENSITY_MAX_DISTANCE = 3500                         # Densité maximum des objets atteint à 3500 m (difficulté max).
 
