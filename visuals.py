@@ -128,6 +128,10 @@ class Visuals:
             pygame.draw.ellipse(screen, COIN_FILL, rect)
             pygame.draw.ellipse(screen, COIN_EDGE, rect, 1)
 
+    def draw_player(self, screen, player_rect):
+        """Dessine le jet, puis la pose actuelle du joueur."""
+        self.draw_jet(screen)                  # d'abord les pièces : elles passent derrière le sprite
+        screen.blit(self.image, player_rect)
     
     #Visuals.14 
     def get_goose_rect(self, center_x, center_y): #Return a rect for a new goose centered on (center_x, center_y).
