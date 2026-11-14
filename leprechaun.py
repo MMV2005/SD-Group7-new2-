@@ -78,7 +78,6 @@ while True:
     playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
     gravity.reset(playerRect.centery)
     thrusting = False
-    reverseCheat = slowCheat = False
     baddieAddCounter = 0
     pygame.mixer.music.play(-1, 0.0)
 
@@ -90,28 +89,17 @@ while True:
                 terminate()
 
             if event.type == KEYDOWN:
-                if event.key == K_z:
-                    reverseCheat = True
-                if event.key == K_x:
-                    slowCheat = True
                 if event.key == K_SPACE:
                     thrusting = True
 
             if event.type == KEYUP:
-                if event.key == K_z:
-                    reverseCheat = False
-                    score = 0
-                if event.key == K_x:
-                    slowCheat = False
-                    score = 0
                 if event.key == K_ESCAPE:
                         terminate()
                 if event.key == K_SPACE:
                     thrusting = False
 
         # Add new baddies at the right of the screen, if needed.
-        if not reverseCheat and not slowCheat:
-            baddieAddCounter += 1
+        baddieAddCounter += 1
         if baddieAddCounter == ADDNEWBADDIERATE:
             baddieAddCounter = 0
             baddieSize = random.randint(BADDIEMINSIZE, BADDIEMAXSIZE)
@@ -132,12 +120,7 @@ while True:
 
         # Move the baddies from the right side of the screen.
         for b in baddies:
-            if not reverseCheat and not slowCheat:
-                b['rect'].move_ip(-b['speed'], 0)
-            elif reverseCheat:
-                b['rect'].move_ip(5, 0)
-            elif slowCheat:
-                b['rect'].move_ip(-1, 0)
+            b['rect'].move_ip(-b['speed'], 0)
 
         # Supprimer les obstacles entièrement sortis à gauche.
         for b in baddies[:]:
