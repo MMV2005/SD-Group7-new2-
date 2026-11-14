@@ -2,9 +2,7 @@ import pygame, random, sys
 from pygame.locals import *
 
 from menu import afficher_menu
-from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, RECORD_FILE,
-                      START_SPEED, MAX_SPEED, CEILING, FLOOR,
-                      CLOVER_TIME, POT_TIME, GUINNESS_TIME)
+from settings import*
 from gravity import JetpackPhysics
 
 TEXTCOLOR = (0, 0, 0)
