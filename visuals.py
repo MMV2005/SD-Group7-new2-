@@ -7,6 +7,7 @@ ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du pe
 FRAME_SEQUENCE = (0, 1, 2, 1)  # Order in which the 3 poses are played.
 
 class Visuals:
+    #visuals.3
     def __init__(self):
         # IMPORTANT: convert_alpha() needs the display to exist already,
         # so Visuals() must be created AFTER pygame.display.set_mode(...).
