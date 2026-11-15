@@ -201,8 +201,8 @@ while True:
 
         # Coin speed matches the geese speed (pixels per frame)
         coin_speed = round(START_SPEED / FPS)
-        # Update coins (spawn, move, collect) and add the collected ones to the counter
-        coin_count += coins.update(playerRect, coin_speed, baddies)
+        # Coins stop appearing while a portal is pending (same rule as the geese)
+        coin_count += coins.update(playerRect, coin_speed, baddies, blocked=gate_pending)
 
         # Supprimer les obstacles entièrement sortis à gauche.
         for b in baddies[:]:

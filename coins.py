@@ -74,26 +74,28 @@ class CoinSpawner:
         else:
             self._spawn_wave()
 
-    def update(self, player_rect, speed, baddies):
+    def update(self, player_rect, speed, baddies, blocked=False):
         """
         Advances one frame: spawn, move, pickup, cleanup.
         `speed` is in px/frame, the same as the geese.
+        `blocked` is True when no new coins may appear (portal incoming or transition).
         Returns the number of coins collected during this frame.
         """
-        # --- Spawn ---
-        self.timer -= 1
-        if self.timer <= 0:
-            if self._zone_is_free(baddies, self.next_kind):
-                self._spawn(self.next_kind)
-                # Choose the next pattern now, so the zone check uses the right size
-                self.next_kind = random.choice(self.PATTERNS)
-                # COIN_INTERVAL is in seconds, convert it to frames
-                self.timer = random.randint(int(COIN_INTERVAL[0] * FPS),
-                                            int(COIN_INTERVAL[1] * FPS))
-            else:
-                self.timer = 10          # area occupied: try again in 10 frames
+        # --- Spawn (frozen while a portal is pending, like the geese) ---
+        if not blocked:
+            self.timer -= 1
+            if self.timer <= 0:
+                if self._zone_is_free(baddies, self.next_kind):
+                    self._spawn(self.next_kind)
+                    # Choose the next pattern now, so the zone check uses the right size
+                    self.next_kind = random.choice(self.PATTERNS)
+                    # COIN_INTERVAL is in seconds, convert it to frames
+                    self.timer = random.randint(int(COIN_INTERVAL[0] * FPS),
+                                                int(COIN_INTERVAL[1] * FPS))
+                else:
+                    self.timer = 10          # area occupied: try again in 10 frames
 
-        # --- Move, pickup, leave the screen ---
+        # --- Move, pickup, leave the screen (always, even while blocked) ---
         collected = 0
         for coin in self.coins[:]:
             coin['rect'].move_ip(-speed, 0)
