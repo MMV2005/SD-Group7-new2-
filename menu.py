@@ -1,74 +1,212 @@
-# Importe Pygame pour dessiner le menu et lire les clics.
 import pygame
+from pathlib import Path
+from collections import deque
+
+MENU_ASSETS_DIR = Path(__file__).resolve().parent / "assets" / "menu"
 
 
-# Reçoit la fenêtre existante, le meilleur score et le dernier score.
-# Renvoie True pour jouer et False pour quitter.
-def afficher_menu(surface, meilleur_score, dernier_score):
-    # Rend la souris visible pendant le menu.
+def load_image(name, size, remove_black=True):
+    """Load an image and resize it without stretching it."""
+
+    path = next(
+        (MENU_ASSETS_DIR / (name + extension)
+         for extension in (".png", ".jpg", ".jpeg")
+         if (MENU_ASSETS_DIR / (name + extension)).exists()),
+        None
+    )
+
+    if path is None:
+        raise FileNotFoundError(
+            f"Missing image in {MENU_ASSETS_DIR}: {name}"
+        )
+
+    image = pygame.image.load(str(path)).convert_alpha()
+
+    if remove_black:
+        # Reduce large images to speed up background removal.
+        scale_factor = min(1, 800 / max(image.get_size()))
+        image = pygame.transform.scale(image, (
+            max(1, round(image.get_width() * scale_factor)),
+            max(1, round(image.get_height() * scale_factor))
+        ))
+
+        # Remove the outer black background without erasing inner details.
+        width, height = image.get_size()
+        pixels = deque(
+            [(x, y) for x in range(width) for y in (0, height - 1)]
+            + [(x, y) for y in range(height) for x in (0, width - 1)]
+        )
+        visited = set()
+
+        while pixels:
+            x, y = pixels.popleft()
+            if not (0 <= x < width and 0 <= y < height):
+                continue
+            if (x, y) in visited:
+                continue
+            visited.add((x, y))
+
+            red, green, blue, alpha = image.get_at((x, y))
+            if alpha == 0 or max(red, green, blue) <= 18:
+                image.set_at((x, y), (0, 0, 0, 0))
+                pixels.extend(((x - 1, y), (x + 1, y),
+                               (x, y - 1), (x, y + 1)))
+
+        bounds = image.get_bounding_rect()
+        if bounds.width and bounds.height:
+            image = image.subsurface(bounds).copy()
+
+    # Use the same scale factor for both dimensions to avoid distortion.
+    scale_factor = min(size[0] / image.get_width(),
+                       size[1] / image.get_height())
+    image = pygame.transform.scale(image, (
+        max(1, round(image.get_width() * scale_factor)),
+        max(1, round(image.get_height() * scale_factor))
+    ))
+
+    # Center the image within the requested area.
+    result = pygame.Surface(size, pygame.SRCALPHA)
+    result.blit(image, image.get_rect(
+        center=(size[0] // 2, size[1] // 2)))
+    return result
+
+
+def show_menu(window, high_score=0, last_score=None,
+              sound_enabled=True, coins=0):
+    """Display the menu in a 960 × 540 window."""
+
+    clock = pygame.time.Clock()
+    font = pygame.font.SysFont("arial", 18, bold=True)
+    title_font = pygame.font.SysFont("arial", 24, bold=True)
+
+    background = load_image("background", (960, 540), False)
+    title = load_image("title", (540, 170))
+    green_button = load_image("green_button", (350, 54))
+    wooden_button = load_image("wooden_button", (350, 54))
+    small_button = load_image("wooden_button", (180, 38))
+    chest = load_image("chest", (55, 55))
+
+    # Darken the background to make the text easier to read.
+    overlay = pygame.Surface((960, 540), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 110))
+
+    buttons = [
+        ("PLAY", pygame.Rect(305, 235, 350, 54)),
+        ("HIGH SCORE", pygame.Rect(305, 298, 350, 54)),
+        ("RULES AND CONTROLS", pygame.Rect(305, 361, 350, 54)),
+        ("SHOP", pygame.Rect(305, 424, 350, 54))
+    ]
+    back_button_rect = pygame.Rect(305, 424, 350, 54)
+    sound_button_rect = pygame.Rect(20, 490, 180, 38)
+    page = "home"
+
+    def draw_text(message, center, text_font=font):
+        rendered_text = text_font.render(
+            str(message), True, (255, 245, 220)
+        )
+        window.blit(rendered_text, rendered_text.get_rect(center=center))
+
+    def draw_button(message, rectangle, image):
+        window.blit(image, rectangle)
+        draw_text(message, rectangle.center)
+
+    previous_cursor_visibility = pygame.mouse.get_visible()
     pygame.mouse.set_visible(True)
-    # Crée une horloge pour limiter la vitesse de la boucle du menu.
-    horloge = pygame.time.Clock()
-    # Lit les dimensions de la fenêtre du jeu.
-    largeur, hauteur = surface.get_size()
-    # Adapte la taille du texte à la fenêtre.
-    taille = max(16, min(largeur // 14, hauteur // 12, 48))
-    # Crée la police du titre avec la police par défaut de Pygame.
-    police_titre = pygame.font.Font(None, taille + 12)
-    # Crée la police des scores et du bouton.
-    police = pygame.font.Font(None, taille)
-    # Crée le rectangle qui sert à dessiner et à détecter le bouton.
-    bouton = pygame.Rect(0, 0, min(220, largeur * 3 // 4), taille + 24)
-    # Place le bouton au centre horizontal, vers le bas du menu.
-    bouton.center = (largeur // 2, hauteur * 3 // 4)
 
-    # Cette fonction locale dessine un texte centré à une hauteur donnée.
-    def texte_centre(texte, fonte, couleur, y):
-        # Transforme le texte en image ; True lisse les lettres.
-        image = fonte.render(texte, True, couleur)
-        # Centre le rectangle de l'image dans la fenêtre.
-        rectangle = image.get_rect(center=(largeur // 2, y))
-        # Colle l'image du texte sur la fenêtre.
-        surface.blit(image, rectangle)
+    try:
+        while True:
+            # Handle mouse clicks and key presses.
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    raise SystemExit
 
-    # Garde le menu ouvert jusqu'à une demande de jouer ou de quitter.
-    while True:
-        # Récupère les événements en attente : clavier, souris, fermeture.
-        for evenement in pygame.event.get():
-            # La croix de la fenêtre demande de quitter le jeu.
-            if evenement.type == pygame.QUIT:
-                return False
-            # Échap permet aussi de quitter depuis le menu.
-            if evenement.type == pygame.KEYDOWN and evenement.key == pygame.K_ESCAPE:
-                return False
-            # Vérifie que l'utilisateur a appuyé sur le bouton gauche.
-            if evenement.type == pygame.MOUSEBUTTONDOWN and evenement.button == 1:
-                # Vérifie que le clic se trouve à l'intérieur du bouton Play.
-                if bouton.collidepoint(evenement.pos):
-                    # Cache à nouveau la souris pendant la partie.
-                    pygame.mouse.set_visible(False)
-                    # Termine la fonction et autorise le lancement de la partie.
-                    return True
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        if page == "home":
+                            pygame.quit()
+                            raise SystemExit
+                        page = "home"
 
-        # Efface l'image précédente avec un fond vert foncé.
-        surface.fill((18, 48, 36))
-        # Affiche le nom du jeu en doré.
-        texte_centre('leprechaun', police_titre, (255, 210, 90), hauteur // 5)
-        # La f-string insère la valeur du meilleur score dans le texte.
-        texte_centre(f'Meilleur score : {meilleur_score}', police, (255, 255, 255), hauteur * 2 // 5)
-        # None signifie qu'aucune partie n'a encore été jouée.
-        dernier = '-' if dernier_score is None else str(dernier_score)
-        # Affiche le dernier score, ou un tiret au premier lancement.
-        texte_centre(f'Dernier score : {dernier}', police, (255, 255, 255), hauteur // 2)
-        # Détecte si la souris survole le bouton.
-        survol = bouton.collidepoint(pygame.mouse.get_pos())
-        # Choisit une couleur plus claire lorsque la souris passe dessus.
-        couleur = (255, 225, 125) if survol else (225, 180, 65)
-        # Dessine le bouton avec des coins arrondis.
-        pygame.draw.rect(surface, couleur, bouton, border_radius=12)
-        # Dessine le mot Play au centre du bouton.
-        texte_centre('Play', police, (18, 48, 36), bouton.centery)
-        # Affiche à l'écran tout ce qui vient d'être dessiné.
-        pygame.display.update()
-        # Limite le menu à 60 images par seconde pour ménager le processeur.
-        horloge.tick(60)
+                    if event.key == pygame.K_RETURN and page == "home":
+                        return sound_enabled
+
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if sound_button_rect.collidepoint(event.pos):
+                        sound_enabled = not sound_enabled
+                        if pygame.mixer.get_init():
+                            pygame.mixer.music.set_volume(
+                                1.0 if sound_enabled else 0.0
+                            )
+
+                    elif page == "home":
+                        for label, rectangle in buttons:
+                            if rectangle.collidepoint(event.pos):
+                                if label == "PLAY":
+                                    return sound_enabled
+                                page = label
+                                break
+
+                    elif back_button_rect.collidepoint(event.pos):
+                        page = "home"
+
+            # Draw the background and title.
+            window.fill((0, 0, 0))
+            window.blit(background, (0, 0))
+            window.blit(overlay, (0, 0))
+            window.blit(title, (210, 40))
+            draw_text("LEPRECHAUN ESCAPE", (480, 140), title_font)
+            window.blit(chest, (20, 10))
+            draw_text(f"CHEST: {coins}", (140, 35))
+
+            if page == "home":
+                for label, rectangle in buttons:
+                    draw_button(
+                        label,
+                        rectangle,
+                        green_button if label == "PLAY" else wooden_button
+                    )
+
+                if last_score is not None:
+                    draw_text(f"Last score: {last_score}", (540, 510))
+
+            else:
+                pygame.draw.rect(
+                    window, (45, 25, 15), (220, 225, 520, 185)
+                )
+
+                if page == "HIGH SCORE":
+                    lines = [
+                        "HIGH SCORE",
+                        f"{high_score} points",
+                        "Best score this session."
+                    ]
+                elif page == "RULES AND CONTROLS":
+                    lines = [
+                        "Avoid the obstacles.",
+                        "Hold SPACE to move up.",
+                        "Release SPACE to move down.",
+                        "Press ESC during the game to quit."
+                    ]
+                else:
+                    lines = [
+                        "SHOP",
+                        "Coming soon: no purchases available yet."
+                    ]
+
+                for index, line in enumerate(lines):
+                    draw_text(line, (480, 255 + index * 36))
+
+                draw_button("BACK", back_button_rect, wooden_button)
+
+            draw_button(
+                "SOUND: " + ("ON" if sound_enabled else "OFF"),
+                sound_button_rect,
+                small_button
+            )
+            pygame.display.flip()
+            clock.tick(60)
+
+    finally:
+        if pygame.display.get_init():
+            pygame.mouse.set_visible(previous_cursor_visibility)
