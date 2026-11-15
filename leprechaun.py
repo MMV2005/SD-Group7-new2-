@@ -62,7 +62,7 @@ windowSurface = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
 pygame.display.set_caption('Dodger')
 pygame.mouse.set_visible(False)
 
-# Set up the fonts.
+# Set up the fonts......
 font = pygame.font.SysFont(None, 48)
 
 # Set up sounds.
