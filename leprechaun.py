@@ -1,12 +1,23 @@
-import pygame, random, sys, math
+import pygame, random, sys
+from game_strip import GameStrip
 from pygame.locals import *
-
+from entities import *
+from coins import CoinSpawner
 from menu import show_menu
 from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
 from entities import Hazard
 from worlds import next_hazard
+from transitions import Transition
+
+
+# -- AJOUT : mondes --
+NORMAL_WORLDS = ('meadow', 'pub', 'cave')
+
+def other_world(current):
+    """Choisit un monde différent du monde actuel."""
+    return random.choice([w for w in NORMAL_WORLDS if w != current])
 
 
 def terminate():
@@ -35,7 +46,7 @@ pygame.init()
 mainClock = pygame.time.Clock()
 windowSurface = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
 pygame.display.set_caption("Leprechaun Escape")
-pygame.mouse.set_visible(False)
+pygame.mouse.set_visible(True)
 
 # Set up the fonts.
 font = pygame.font.SysFont(None, 48)
@@ -44,8 +55,9 @@ font = pygame.font.SysFont(None, 48)
 gameOverSound = pygame.mixer.Sound('assets/gameover.wav')
 pygame.mixer.music.load('assets/background.mid')
 
-# Set up visuals and mask.
-visuals = Visuals()
+# Set up images.
+visuals = Visuals()               # loads the 3 frames and their masks
+hud = GameStrip()
 playerRect = visuals.get_rect()
 
 # Provide the shared resources to all hazards.
@@ -58,6 +70,8 @@ topScore = 0
 last_score = None
 sound_enabled = True
 gravity = JetpackPhysics()
+coins = CoinSpawner()
+coin_count = 0
 
 while True:
     # Show the menu before each game.
@@ -92,6 +106,27 @@ while True:
 
     visuals.reset_jet()
     pygame.mixer.music.play(-1, 0.0)
+    coins.reset()
+    coin_count = 0
+    playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
+    gravity.reset(playerRect.centery)
+    thrusting = False
+    baddieAddCounter = 0
+    visuals.reset_jet()        # vide le jet à chaque nouvelle partie
+    hud.reset()
+    pygame.mixer.music.play(-1, 0.0)
+
+    # --- AJOUT : mondes et portails ---
+    world = 'meadow'                                    # monde affiché
+    distance = 0                                        # distance parcourue (en mètres)
+    next_portal = random.randint(PORTAL_MIN, PORTAL_MAX)  # distance du prochain portail
+    transition = None                                   # transition en cours (ou None)
+    portal_x = None                                     # position du portail à l'écran (None = pas de portail)
+    portal_destination = None                           # monde où mène le portail
+
+
+    while True: # The game loop runs while the game part is playing.
+        score += 1 # Increase score.
 
     # Loop of a game.
     while True:
@@ -186,6 +221,12 @@ while True:
     # Stop the music and play the game-over sound.
     pygame.mixer.music.stop()
     gameOverSound.play()
+
+    drawText('GAME OVER', font, windowSurface, (WINDOWWIDTH / 3), (WINDOWHEIGHT / 3))
+    drawText('Press a key to play again.', font, windowSurface, (WINDOWWIDTH / 3) - 80, (WINDOWHEIGHT / 3) + 50)
+    pygame.display.update()
+    waitForPlayerToPressKey()
+
 
     # Save the latest score before returning to the menu.
     last_score = score
