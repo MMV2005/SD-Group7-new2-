@@ -63,7 +63,7 @@ pygame.init()
 mainClock = pygame.time.Clock()
 windowSurface = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
 pygame.display.set_caption("Leprechaun Escape")
-pygame.mouse.set_visible(False)
+pygame.mouse.set_visible(True)
 
 # Set up the fonts.
 font = pygame.font.SysFont(None, 48)
