@@ -1,28 +1,16 @@
 import pygame, random, sys
+from game_strip import GameStrip
 from pygame.locals import *
-
+from entities import *
+from coins import CoinSpawner
 from menu import show_menu
 from game_over import show_game_over
 from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
+from entities import Hazard
+from worlds import next_hazard, next_gate, other_world
 from transitions import Transition
-
-TEXTCOLOR = (255, 255, 255)
-BACKGROUNDCOLOR = (5, 25, 30)
-BADDIEMINSIZE = 100
-BADDIEMAXSIZE = 100
-BADDIEMINSPEED = 1
-BADDIEMAXSPEED = 8
-ADDNEWBADDIERATE = 50
-PLAYERMOVERATE = 5
-
-# -- AJOUT : mondes --
-NORMAL_WORLDS = ('meadow', 'pub', 'cave')
-
-def other_world(current):
-    """Choisit un monde différent du monde actuel."""
-    return random.choice([w for w in NORMAL_WORLDS if w != current])
 
 
 def terminate():
@@ -39,17 +27,6 @@ def waitForPlayerToPressKey():
                     terminate()
                 return
 
-# Source : Documentation Pygame (https://www.pygame.org/docs/ref/mask.html)
-def playerHasHitBaddie(playerRect, playerMask, baddies):
-    for b in baddies:
-        # Calcul de la distance (offset) entre le coin haut-gauche du joueur et celui de l'ennemi
-        offset_x = b['rect'].left - playerRect.left
-        offset_y = b['rect'].top - playerRect.top
-
-        # Vérifie si les pixels non-transparents des deux masques se superposent
-        if playerMask.overlap(b['mask'], (offset_x, offset_y)) is not None:
-            return True
-    return False
 
 def drawText(text, font, surface, x, y):
     textobj = font.render(text, 1, TEXTCOLOR)
@@ -62,7 +39,7 @@ pygame.init()
 mainClock = pygame.time.Clock()
 windowSurface = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
 pygame.display.set_caption("Leprechaun Escape")
-pygame.mouse.set_visible(False)
+pygame.mouse.set_visible(True)
 
 # Set up the fonts.
 font = pygame.font.SysFont(None, 48)
@@ -73,8 +50,14 @@ pygame.mixer.music.load('assets/background.mid')
 
 # Set up images.
 visuals = Visuals()               # loads the 3 frames and their masks
+hud = GameStrip()
 playerRect = visuals.get_rect()
-playerMask = pygame.mask.from_surface(visuals.frames[0]) # Crée la hitbox au pixel près du joueur
+
+# Provide the shared resources to all hazards.
+Hazard.configure(
+    visuals.obstacle_frames,
+    visuals.obstacle_masks,
+    visuals.jet_images)
 
 topScore = 0
 last_score = None
@@ -85,6 +68,8 @@ last_score = None
 sound_enabled = True
 gravity = JetpackPhysics()
 open_main_menu = True
+coins = CoinSpawner()
+coin_count = 0
 
 while True:
     # Open the main menu at startup or when MENU is selected.
@@ -105,28 +90,42 @@ while True:
 
     # Set up the start of the game.
     baddies = []
+    # main.1 : Réinitialiser la partie et le monde.
+    hazards = []
+    world = 'meadow'
+    distance = 0.0
     score = 0
-    playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
+    speed = START_SPEED
+
+    # Délais avant les obstacles.
+    danger_timer = 1.5
+    safe_timer = 0.0
+
+    # Position et mouvement du personnage.
+    playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT / 2)
     gravity.reset(playerRect.centery)
     thrusting = False
-    baddieAddCounter = 0
-    visuals.reset_jet()        # vide le jet à chaque nouvelle partie
+
+    # Effets visuels, pièces et bandeau.
+    visuals.reset_jet()
+    coins.reset()
+    coin_count = 0
+    hud.reset()
+
+    # Préparation des portails.
+    next_portal = next_gate(distance)
+    portal_x = None
+    portal_destination = None
+    transition = None
+
     pygame.mixer.music.play(-1, 0.0)
+    # main.2 : Boucle de la partie.
+    while True:
+        # Pas de temps fixe, compatible avec notre physique actuelle.
+        dt = 1 / FPS
 
-    # --- AJOUT : mondes et portails ---
-    world = 'meadow'                                    # monde affiché
-    distance = 0                                        # distance parcourue (en mètres)
-    next_portal = random.randint(PORTAL_MIN, PORTAL_MAX)  # distance du prochain portail
-    transition = None                                   # transition en cours (ou None)
-    portal_x = None                                     # position du portail à l'écran (None = pas de portail)
-    portal_destination = None                           # monde où mène le portail
-
-
-    while True: # The game loop runs while the game part is playing.
-        score += 1 # Increase score.
-
-        visuals.update_pose()
-
+        # Aucune collision détectée au début de cette image.
+        collision = False
         for event in pygame.event.get():
             if event.type == QUIT:
                 terminate()
@@ -137,110 +136,196 @@ while True:
 
             if event.type == KEYUP:
                 if event.key == K_ESCAPE:
-                        terminate()
+                    terminate()
+
                 if event.key == K_SPACE:
                     thrusting = False
 
-        # Nombre maximum d'oies à l'écran selon l'avancement (worlds.11)
-        distance_meters = score 
-        if distance_meters < TWO_OBSTACLES_DISTANCE:
-            max_baddies = 1
-        elif distance_meters < THREE_OBSTACLES_DISTANCE:
-            max_baddies = 2
-        else: 
-            max_baddies = 3
-        # 2. Vérifier l'écart minimal (OBSTACLE_GAP_MIN = 280 px) avec la dernière oie
-        can_spawn = True
-        if baddies:
-            last_x = max(b['rect'].centerx for b in baddies)
-            if (WINDOWWIDTH + 80) - last_x < OBSTACLE_GAP_MIN:
-                can_spawn = False
+                # main.3 : Faire avancer une transition en cours.
+        if transition is not None:
 
-        # --- AJOUT : portail dû, en approche ou transition en cours : plus aucune nouvelle oie ---
-        # Le portail n'apparaît que lorsque la dernière oie a quitté l'écran : aucune oie n'est rattrapée ni supprimée.
-        gate_pending = portal_x is not None or transition is not None or distance >= next_portal
-        if gate_pending:
-            can_spawn = False
+            # Changer le monde lorsque le nuage couvre l'écran.
+            if transition.update(dt):
+                world = transition.destination
 
-        
-        #3. Faire apparaître une nouvelle oie dès que le quota (< max_baddies) et l'écart (280 px) le permettent
-        if len(baddies) < max_baddies and can_spawn:
-            goose_y = random.choice(MEADOW_HEIGHTS)
-            newBaddie = {
-                'rect': visuals.get_goose_rect(WINDOWWIDTH + 80, goose_y),
-                'speed': round(START_SPEED / FPS),
-                'mask': visuals.goose_mask,
-                'age': 0.0,
-            }
-            baddies.append(newBaddie)
-
-        # Move the player.
-        playerRect.centery = gravity.update(thrusting, playerRect.height, WINDOWHEIGHT)
-
-        visuals.update_jet(playerRect, thrusting)    # crée et fait avancer les pièces
-
-        # --- AJOUT : portail + changement de monde ---
-        dt = 1 / FPS
-        distance += START_SPEED * dt * METERS_PER_PIXEL
-        if portal_x is None and transition is None and distance >= next_portal and not baddies:   # écran vide
-            portal_x = WINDOWWIDTH + 140                    # le portail arrive par la droite, avec son nuage
-            portal_destination = other_world(world)
-        if portal_x is not None:
-            portal_x -= START_SPEED * dt                    # le portail avance vers le joueur
-            if portal_x <= playerRect.right:                # le joueur atteint le portail : la transition démarre
-                transition = Transition(portal_destination, start_x=portal_x - 20, portal_x=portal_x)
-                portal_x = None
-        if transition:
-            if transition.update(dt):                       # True une seule fois : écran entièrement couvert
-                world = transition.destination              # on change le fond
+            # Terminer la transition et préparer la suite.
             if transition.done:
                 transition = None
-                # Le portail suivant se calcule APRÈS la transition : deux transitions ne peuvent pas s'enchaîner.
-                next_portal = distance + random.randint(PORTAL_MIN, PORTAL_MAX)
+                portal_destination = None
 
+                safe_timer = SAFE_SECONDS
+                danger_timer = 0.0
 
-        # Move the baddies from the right side of the screen.
-        for b in baddies:
-            b['rect'].move_ip(-b['speed'], 0)
-            b['age'] += 1 / FPS  # Incrémenter l'âge de l'oie pour l'animation des ailes
+                next_portal = next_gate(distance)
 
-        # Supprimer les obstacles entièrement sortis à gauche.
-        for b in baddies[:]:
-            if b['rect'].right < 0:
-                baddies.remove(b)
+        # main.4 : Faire avancer le jeu seulement hors transition.
+        else:
+            safe_timer = max(0.0, safe_timer - dt)
 
-        # Draw the game world on the window.
+            # Augmenter progressivement la vitesse.
+            speed = min(
+                MAX_SPEED,
+                START_SPEED + distance * SPEED_PER_METER
+            )
+
+            distance += speed * dt * METERS_PER_PIXEL
+            score = int(distance)
+
+            # Animation et mouvement du personnage.
+            visuals.update_pose()
+            playerRect.centery = gravity.update(
+                thrusting,
+                playerRect.height,
+                WINDOWHEIGHT
+            )
+            visuals.update_jet(playerRect, thrusting)
+
+            # main.5 : Déplacer les obstacles déjà présents.
+            for obstacle in hazards:
+                obstacle.update(dt, speed, playerRect)
+
+            # Retirer les obstacles sortis ou ayant terminé leur tir.
+            hazards = [
+                obstacle
+                for obstacle in hazards
+                if not obstacle.offscreen()
+            ]
+
+            # main.6 : Déterminer si un portail doit arriver.
+            gate_pending = distance >= next_portal
+
+            # Attendre la sortie des obstacles avant de créer le portail.
+            if gate_pending and portal_x is None and not hazards:
+                portal_x = WINDOWWIDTH + 140
+                portal_destination = other_world(world)
+
+            # main.7 : Déplacer le portail vers la gauche.
+            if portal_x is not None:
+                portal_x -= speed * dt
+
+                # Déclencher la transition quand il atteint le joueur.
+                if portal_x <= playerRect.centerx:
+                    transition = Transition(
+                        portal_destination,
+                        start_x=portal_x - 20,
+                        portal_x=portal_x
+                    )
+
+                    # La transition dessine désormais le portail.
+                    portal_x = None
+                    coins.reset()
+
+            # main.8 : Autoriser ou bloquer les nouveaux obstacles.
+            can_spawn = (
+                not gate_pending
+                and portal_x is None
+                and transition is None
+                and safe_timer <= 0
+            )
+
+            if can_spawn:
+                danger_timer -= dt
+
+                if danger_timer <= 0:
+                    obstacle = next_hazard(
+                        world,
+                        distance,
+                        hazards,
+                        speed,
+                        playerRect.centerx
+                    )
+
+                    if obstacle is not None:
+                        hazards.append(obstacle)
+
+                        # Réduire progressivement le délai d'apparition.
+                        progress = min(
+                            1.0,
+                            distance / DENSITY_MAX_DISTANCE
+                        )
+
+                        interval = (
+                            OBSTACLE_INTERVAL_START
+                            + (
+                                OBSTACLE_INTERVAL_MIN
+                                - OBSTACLE_INTERVAL_START
+                            ) * progress
+                        )
+
+                        danger_timer = max(
+                            OBSTACLE_INTERVAL_MIN,
+                            interval * random.uniform(0.9, 1.1)
+                        )
+
+                    else:
+                        # Réessayer si aucun obstacle n'était autorisé.
+                        danger_timer = 0.15
+
+            # main.9 : Vérifier les collisions hors transition et sécurité.
+            if transition is None and safe_timer <= 0:
+                for obstacle in hazards:
+                    if obstacle.collides_with(playerRect, visuals.mask):
+                        collision = True
+                        break
+                # main.10 : Dessiner le fond du monde actuel.
         visuals.draw_background(windowSurface, world)
 
-        # Bandeau du plafond (de 0 à CEILING)
-        pygame.draw.rect(windowSurface, (10, 35, 38), (0, 0, WINDOWWIDTH, CEILING))
-        pygame.draw.line(windowSurface, (25, 60, 60), (0, CEILING), (WINDOWWIDTH, CEILING), 2)
+        # Dessiner les obstacles et le personnage.
+        for obstacle in hazards:
+            visuals.draw_obstacle(windowSurface, obstacle)
 
-        # Draw the score and top score.
-        drawText('Score: %s' % (score), font, windowSurface, 10, 0)
-        drawText('Top Score: %s' % (topScore), font, windowSurface, 10, 40)
-
-
-        # Draw the player.
         visuals.draw_player(windowSurface, playerRect)
 
-        # Draw each baddie.
-        for b in baddies:
-            visuals.draw_goose(windowSurface, b)
-            # --- AJOUT : portail avec son nuage, puis rideau de transition (par-dessus tout le reste) ---
+        # main.11 : Dessiner le portail pendant son approche.
         if portal_x is not None:
             visuals.draw_portal(windowSurface, portal_x)
-        if transition:
-            transition.draw(windowSurface, visuals.portal_image)   # le portail est emporté avec le rideau
+
+        # main.12 : Dessiner la transition par-dessus le décor.
+        if transition is not None:
+            transition.draw(
+                windowSurface,
+                visuals.portal_image
+            )
+
+        # main.13 : Dessiner le bandeau au-dessus de la transition.
+        pygame.draw.rect(
+            windowSurface,
+            (10, 35, 38),
+            (0, 0, WINDOWWIDTH, CEILING)
+        )
+
+        pygame.draw.line(
+            windowSurface,
+            (25, 60, 60),
+            (0, CEILING),
+            (WINDOWWIDTH, CEILING),
+            2
+        )
+
+        drawText(
+            f'Distance : {score} m',
+            font,
+            windowSurface,
+            10,
+            0
+        )
+
+        drawText(
+            f'Record : {topScore} m',
+            font,
+            windowSurface,
+            10,
+            40
+        )
 
         pygame.display.update()
 
-        # Check if any of the baddies have hit the player.
-        if playerHasHitBaddie(playerRect, visuals.mask, baddies):
-            if score > topScore:
-                topScore = score # set new top score
+        # 8. End the game if the player has collided with an obstacle. Actualize the top score if necessary.
+        if collision:
+            topScore = max(topScore, score)
             break
 
+        # Limit the number of frames per second.
         mainClock.tick(FPS)
 
         # Stop the music and play the game-over sound.

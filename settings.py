@@ -27,8 +27,16 @@ SAFE_SECONDS = 1.5                         # Durée de la zone de sécurité apr
 GOLD_SECONDS = 10.0                        # Durée de la zone de bonus dans le monde cité d'or (en secondes).
 
 # settings.5 : Recompenses et objets.
+#coins 
 COIN_INTERVAL = (3.4, 4.8)                 # Délai aléatoire entre deux groupes de pièces (en secondes).
-COINS_PER_GROUP = 5                        # Nombre de pièces par groupe.
+COINS_PER_WAVE = 5                        # Nombre de pièces dans la vague.
+RADIUS = 12          # half the size of a coin, in pixels (sprite and hitbox)
+SPACING = 43         # horizontal gap between two coins in a wave (px)
+AMPLITUDE = 24       # vertical amplitude of the wave (px)
+CIRCLE_R = 70        # radius of the circle of coins (px)
+CIRCLE_N = 12        # number of coins in the circle
+
+
 ITEM_INTERVAL = (10.0, 15.0)               # Délai aléatoire entre deux objets (en secondes).
 MAGNET_SECONDS = 6.0                       # Durée d'activation du aimant (en secondes).
 MAGNET_RX, MAGNET_RY, MAGNET_OFFSET = 180, 110, 45  # Rayons horizontal et vertical de l’aimant, puis décalage vers l’avant, en pixels.
@@ -80,3 +88,5 @@ LAUNCHER_VERTICAL_GAP = 150                         # Écart minimal entre deux 
 
 MEADOW_HEIGHTS = (130, 130, 200, 285, 365)          # Hauteur des obstacles dans le monde prairie par probabilité (40%, 20%, 20%, 20% respectivement). Repetition of 130 increases its probability of appearance.
 PUB_HEIGHTS = (130, 130, 200, 285, 365)             # Hauteur des obstacles dans le monde pub par probabilité (répéter 130 augmente la probabilité d'apparition : 20% ici, et pour (130, 130, 200, 285, 365) : 40%, 20%, 20%, 20% respectivement)
+
+TEXTCOLOR = (255, 255, 255)
