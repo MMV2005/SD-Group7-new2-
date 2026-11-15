@@ -16,7 +16,7 @@ BADDIEMAXSPEED = 8
 ADDNEWBADDIERATE = 50
 PLAYERMOVERATE = 5
 
-# --- AJOUT : mondes ---
+# -- AJOUT : mondes --
 NORMAL_WORLDS = ('meadow', 'pub', 'cave')
 
 def other_world(current):

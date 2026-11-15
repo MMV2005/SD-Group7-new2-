@@ -21,7 +21,7 @@ SPEED_PER_METRE = 0.045                    # +45 pixels/seconde tous les 1000 me
 METRES_PER_PIXEL = 0.1                     # Conversion de pixels à metres (1 pixel = 0.1 metre)
 
 # settings.4 : Mondes et transitions.
-PORTAL_MIN, PORTAL_MAX = 300, 400          # Distance minimale et maximale entre deux portails (en metres).
+PORTAL_MIN, PORTAL_MAX = 300, 450          # Distance minimale et maximale entre deux portails (en metres).
 TRANSITION_SECONDS = 1.6                   # Durée de la transition entre deux mondes (en secondes).
 SAFE_SECONDS = 1.5                         # Durée de la zone de sécurité après un portail (en secondes).
 GOLD_SECONDS = 10.0                        # Durée de la zone de bonus dans le monde cité d'or (en secondes).
