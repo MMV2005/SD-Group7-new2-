@@ -115,7 +115,7 @@ while True:
                     thrusting = False
 
         # 2. Update the distance and the score. 
-        distance += speed * dt * METRES_PER_PIXEL
+        distance += speed * dt * METERS_PER_PIXEL
         score = int(distance)
 
         # 3. Update the player’s position and the jet’s position and animation.

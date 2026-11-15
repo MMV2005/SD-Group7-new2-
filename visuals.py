@@ -9,7 +9,7 @@ PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
 BACKGROUND_FILE = ASSETS / 'world' / 'bg_meadow.png'
 BACKGROUND_HORIZON = 800 # y of the ground line in the SOURCE image (pixels).
 GOOSE_FRAMES_FOLDER = ASSETS / 'goose'
-ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du personnage (FPS).
+ANIMATION_FPS = 9           # Number of frames per second for the player animation (FPS).
 
 
 class Visuals:
@@ -25,7 +25,7 @@ class Visuals:
         self.image = self.frames[0]
         self.mask = self.masks[0]
 
-        # --- fond, chargé une seule fois ---
+        # Background, charged one times
         self.background = self.load_background()
 
         self.goose_frames = [
@@ -139,27 +139,28 @@ class Visuals:
     # Charger les images et les masques des obstacles.
     def load_obstacles(self):
         folder = ASSETS / 'obstacles'
+        shooters_folder = ASSETS / 'shooters'
 
         self.obstacle_frames = {}
         self.obstacle_masks = {}
 
         # Images fixes et dimensions finales.
         files = {
-            'barrel': ('wooden_barrel.png', (80, 72)),
-            'mug': ('beer_mug.png', (44, 48)),
-            'rock_floor': ('rock_spike_up.jpg', (88, 143)),
-            'rock_ceiling': ('rock_spike_down.jpg', (88, 143)),
-            'rock_horizontal': ('floating_platform.jpg', (160, 60)),
-            'rock_vertical': ('stone_wall.png', (52, 138)),
-            'rock_diagonal': ('stone_bridge.png', (145, 132)),
-            'cannon': ('bear_launcher.png', LAUNCHERS['cannon'][0]),
-            'flame': ('dragon_head.png', LAUNCHERS['flame'][0]),
+            'barrel': (folder / 'wooden_barrel.jpg', (80, 72)),
+            'mug': (ASSETS / 'bonus' / 'beer_mug.png', (44, 48)),
+            'rock_floor': (folder / 'rock_spike_up.jpg', (88, 143)),
+            'rock_ceiling': (folder / 'rock_spike_down.jpg', (88, 143)),
+            'rock_horizontal': (folder / 'floating_platform.jpg', (160, 60)),
+            'rock_vertical': (folder / 'stone_wall.png', (52, 138)),
+            'rock_diagonal': (folder / 'stone_bridge.png', (145, 132)),
+            'cannon': (shooters_folder / 'bear_launcher.png', LAUNCHERS['cannon'][0]),
+            'flame': (shooters_folder / 'dragon_head.png', LAUNCHERS['flame'][0]),
         }
 
         # Charger et redimensionner les images fixes.
-        for key, (filename, size) in files.items():
+        for key, (image_path, size) in files.items():
             image = pygame.image.load(
-                str(folder / filename)
+                str(image_path)
             ).convert_alpha()
 
             image = pygame.transform.scale(image, size)
@@ -169,15 +170,26 @@ class Visuals:
         self.obstacle_frames['goose'] = self.goose_frames
 
         # Charger les deux poses de l’oie rouge et de la chauve-souris.
-        for kind in ('red_goose', 'bat'):
+        animated_obstacles = {
+            'red_goose': (
+                GOOSE_FRAMES_FOLDER,
+                ('red_goose_0.png', 'red_goose_1.png'),
+                (98, 88),
+            ),
+            'bat': (
+                ASSETS / 'bats',
+                ('bat_1.jpg', 'bat_2.jpg'),
+                (96, 70),
+            ),
+        }
+        for kind, (frame_folder, filenames, size) in animated_obstacles.items():
             frames = []
 
-            for i in range(2):
+            for filename in filenames:
                 image = pygame.image.load(
-                    str(folder / f'{kind}_{i}.png')
+                    str(frame_folder / filename)
                 ).convert_alpha()
 
-                size = (98, 88) if kind == 'red_goose' else (96, 70)
                 image = pygame.transform.scale(image, size)
                 frames.append(image)
 
@@ -186,7 +198,7 @@ class Visuals:
         # Charger les quatre variantes de barrières.
         for variant, size in enumerate(FENCE_SIZES):
             image = pygame.image.load(
-                str(folder / f'barriere_{variant}.png')
+                str(folder / f'fence_{variant}.png')
             ).convert_alpha()
 
             image = pygame.transform.scale(image, size)
@@ -207,7 +219,7 @@ class Visuals:
             ('flame', 'fire_ball.png'),
         ):
             self.jet_images[kind] = pygame.image.load(
-                str(folder / filename)
+                str(shooters_folder / filename)
             ).convert_alpha()
         
     # Dessiner un obstacle, son avertissement et son jet.

@@ -80,3 +80,5 @@ LAUNCHER_VERTICAL_GAP = 150                         # Écart minimal entre deux 
 
 MEADOW_HEIGHTS = (130, 130, 200, 285, 365)          # Hauteur des obstacles dans le monde prairie par probabilité (40%, 20%, 20%, 20% respectivement). Repetition of 130 increases its probability of appearance.
 PUB_HEIGHTS = (130, 130, 200, 285, 365)             # Hauteur des obstacles dans le monde pub par probabilité (répéter 130 augmente la probabilité d'apparition : 20% ici, et pour (130, 130, 200, 285, 365) : 40%, 20%, 20%, 20% respectivement)
+
+TEXTCOLOR = (255, 255, 255)
