@@ -1,7 +1,7 @@
 import pygame, random, sys, math
 from pygame.locals import *
 
-from menu import afficher_menu
+from menu import show_menu
 from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
@@ -51,7 +51,7 @@ def drawText(text, font, surface, x, y):
 pygame.init()
 mainClock = pygame.time.Clock()
 windowSurface = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
-pygame.display.set_caption('Dodger')
+pygame.display.set_caption("Leprechaun Escape")
 pygame.mouse.set_visible(False)
 
 # Set up the fonts.
@@ -66,12 +66,24 @@ visuals = Visuals()               # loads the 3 frames and their masks
 playerRect = visuals.get_rect()
 playerMask = pygame.mask.from_surface(visuals.frames[0]) # Crée la hitbox au pixel près du joueur
 
-# Show the "Start" screen.
-afficher_menu(windowSurface, 0, None)
-pygame.display.update()
 topScore = 0
+last_score = None
+sound_enabled = True
 gravity = JetpackPhysics()
+
 while True:
+    # Show the menu before each game.
+    sound_enabled = show_menu(
+        windowSurface,
+        high_score=topScore,
+        last_score=last_score,
+        sound_enabled=sound_enabled
+    )
+
+    # Apply the selected sound setting.
+    pygame.mixer.music.set_volume(1.0 if sound_enabled else 0.0)
+    gameOverSound.set_volume(1.0 if sound_enabled else 0.0)
+
     # Set up the start of the game.
     baddies = []
     score = 0
@@ -170,11 +182,9 @@ while True:
 
         mainClock.tick(FPS)
 
-    # Stop the game and show the "Game Over" screen.
+    # Stop the music and play the game-over sound.
     pygame.mixer.music.stop()
     gameOverSound.play()
 
-    drawText('GAME OVER', font, windowSurface, (WINDOWWIDTH / 3), (WINDOWHEIGHT / 3))
-    drawText('Press a key to play again.', font, windowSurface, (WINDOWWIDTH / 3) - 80, (WINDOWHEIGHT / 3) + 50)
-    pygame.display.update()
-    waitForPlayerToPressKey()
+    # Save the latest score before returning to the menu.
+    last_score = score
