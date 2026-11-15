@@ -11,7 +11,7 @@ BACKGROUND_FOLDER = ASSETS / 'world'
 # y de la ligne du sol dans chaque image SOURCE (pixels).
 BACKGROUND_HORIZONS = {'meadow': 800, 'pub': 830, 'cave': 805, 'gold': 755}
 GOOSE_FRAMES_FOLDER = ASSETS / 'goose'
-ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du personnage (FPS).
+ANIMATION_FPS = 9           # Number of frames per second for the player animation (FPS).
 
 # --- AJOUT : portail ---
 PORTAL_FILE = ASSETS / 'transition' / 'portal.png'
@@ -48,6 +48,7 @@ class Visuals:
 
         self.coins = []               # particules actuellement à l'écran
         self.jet_accumulator = 0.0    # reste fractionnaire : JET_RATE / FPS n'est pas entier
+        self.load_obstacles()
 
     def get_rect(self):
         """Return a new rect of the player's size (same for the 3 poses)."""
@@ -155,3 +156,123 @@ class Visuals:
     def draw_goose(self, screen, baddie): #Draw goose_0 or goose_1 depending on the goose's age (GOOSE_FPS = 6).
         index = int(baddie['age'] * GOOSE_FPS) % 2
         screen.blit(self.goose_frames[index], baddie['rect'])
+
+    # Charger les images et les masques des obstacles.
+    def load_obstacles(self):
+        folder = ASSETS / 'obstacles'
+        shooters_folder = ASSETS / 'shooters'
+
+        self.obstacle_frames = {}
+        self.obstacle_masks = {}
+
+        # Images fixes et dimensions finales.
+        files = {
+            'barrel': (folder / 'wooden_barrel.jpg', (80, 72)),
+            'mug': (ASSETS / 'bonus' / 'beer_mug.png', (44, 48)),
+            'rock_floor': (folder / 'rock_spike_up.jpg', (88, 143)),
+            'rock_ceiling': (folder / 'rock_spike_down.jpg', (88, 143)),
+            'rock_horizontal': (folder / 'floating_platform.jpg', (160, 60)),
+            'rock_vertical': (folder / 'stone_wall.png', (52, 138)),
+            'rock_diagonal': (folder / 'stone_bridge.png', (145, 132)),
+            'cannon': (shooters_folder / 'bear_launcher.png', LAUNCHERS['cannon'][0]),
+            'flame': (shooters_folder / 'dragon_head.png', LAUNCHERS['flame'][0]),
+        }
+
+        # Charger et redimensionner les images fixes.
+        for key, (image_path, size) in files.items():
+            image = pygame.image.load(
+                str(image_path)
+            ).convert_alpha()
+
+            image = pygame.transform.scale(image, size)
+            self.obstacle_frames[key] = [image]
+
+        # Réutiliser les oies normales déjà chargées.
+        self.obstacle_frames['goose'] = self.goose_frames
+
+        # Charger les deux poses de l’oie rouge et de la chauve-souris.
+        animated_obstacles = {
+            'red_goose': (
+                GOOSE_FRAMES_FOLDER,
+                ('red_goose_0.png', 'red_goose_1.png'),
+                (98, 88),
+            ),
+            'bat': (
+                ASSETS / 'bats',
+                ('bat_1.jpg', 'bat_2.jpg'),
+                (96, 70),
+            ),
+        }
+        for kind, (frame_folder, filenames, size) in animated_obstacles.items():
+            frames = []
+
+            for filename in filenames:
+                image = pygame.image.load(
+                    str(frame_folder / filename)
+                ).convert_alpha()
+
+                image = pygame.transform.scale(image, size)
+                frames.append(image)
+
+            self.obstacle_frames[kind] = frames
+
+        # Charger les quatre variantes de barrières.
+        for variant, size in enumerate(FENCE_SIZES):
+            image = pygame.image.load(
+                str(folder / f'fence_{variant}.png')
+            ).convert_alpha()
+
+            image = pygame.transform.scale(image, size)
+            self.obstacle_frames[f'fence_{variant}'] = [image]
+
+        # Créer un masque par image, après les redimensionnements.
+        for key, frames in self.obstacle_frames.items():
+            self.obstacle_masks[key] = [
+                pygame.mask.from_surface(image)
+                for image in frames
+            ]
+
+        # Les jets seront redimensionnés à leur longueur lors de la création.
+        self.jet_images = {}
+
+        for kind, filename in (
+            ('cannon', 'bear_laser.png'),
+            ('flame', 'fire_ball.png'),
+        ):
+            self.jet_images[kind] = pygame.image.load(
+                str(shooters_folder / filename)
+            ).convert_alpha()
+        
+    # Dessiner un obstacle, son avertissement et son jet.
+    def draw_obstacle(self, screen, obstacle):
+        if obstacle.kind in ('cannon', 'flame'):
+            mouth_x, mouth_y = obstacle.muzzle
+
+            # Clignotement de la ligne avant le tir.
+            if obstacle.age < JET_WARNING:
+                if int(obstacle.age * 8) % 2 == 0:
+                    color = (
+                        (255, 205, 70)
+                        if obstacle.kind == 'cannon'
+                        else (255, 100, 45)
+                    )
+
+                    pygame.draw.line(
+                        screen,
+                        color,
+                        (0, mouth_y),
+                        (mouth_x, mouth_y),
+                        2
+                    )
+
+            # Afficher exactement la surface utilisée pour le masque.
+            if obstacle.firing and obstacle.jet_surface is not None:
+                screen.blit(
+                    obstacle.jet_surface,
+                    obstacle.jet_rect
+                )
+
+        # Dessiner le lanceur par-dessus l’extrémité de son jet.
+        screen.blit(obstacle.image, obstacle.rect)
+
+    
