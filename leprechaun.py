@@ -2,6 +2,7 @@ import pygame, random, sys
 from pygame.locals import *
 
 from menu import show_menu
+from game_over import show_game_over
 from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
@@ -79,19 +80,28 @@ topScore = 0
 last_score = None
 sound_enabled = True
 gravity = JetpackPhysics()
+topScore = 0
+last_score = None
+sound_enabled = True
+gravity = JetpackPhysics()
+open_main_menu = True
 
 while True:
-    # Show the menu before each game.
-    sound_enabled = show_menu(
-        windowSurface,
-        high_score=topScore,
-        last_score=last_score,
-        sound_enabled=sound_enabled
-    )
+    # Open the main menu at startup or when MENU is selected.
+    if open_main_menu:
+        sound_enabled = show_menu(
+            windowSurface,
+            high_score=topScore,
+            last_score=last_score,
+            sound_enabled=sound_enabled
+        )
 
     # Apply the selected sound setting.
     pygame.mixer.music.set_volume(1.0 if sound_enabled else 0.0)
     gameOverSound.set_volume(1.0 if sound_enabled else 0.0)
+
+    # Stop any remaining game-over sound before starting.
+    gameOverSound.stop()
 
     # Set up the start of the game.
     baddies = []
@@ -233,15 +243,16 @@ while True:
 
         mainClock.tick(FPS)
 
-    # Stop the music and play the game-over sound.
+        # Stop the music and play the game-over sound.
     pygame.mixer.music.stop()
     gameOverSound.play()
 
-    drawText('GAME OVER', font, windowSurface, (WINDOWWIDTH / 3), (WINDOWHEIGHT / 3))
-    drawText('Press a key to play again.', font, windowSurface, (WINDOWWIDTH / 3) - 80, (WINDOWHEIGHT / 3) + 50)
-    pygame.display.update()
-    waitForPlayerToPressKey()
-
-
-    # Save the latest score before returning to the menu.
+    # Save the latest score and update the session record.
     last_score = score
+    topScore = max(topScore, score)
+
+    # Show the game-over panel over the frozen game.
+    action = show_game_over(windowSurface, score, topScore)
+
+    # Choose whether to open the main menu before the next game.
+    open_main_menu = action == "menu"   

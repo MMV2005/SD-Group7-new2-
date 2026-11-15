@@ -1,11 +1,12 @@
 import pygame
 from pathlib import Path
 from collections import deque
+from functools import lru_cache
 
 MENU_ASSETS_DIR = Path(__file__).resolve().parent / "assets" / "menu"
 
-
-def load_image(name, size, remove_black=True):
+@lru_cache(maxsize=32)
+def load_image(name, size, remove_black=False):
     """Load an image and resize it without stretching it."""
 
     path = next(
@@ -21,6 +22,11 @@ def load_image(name, size, remove_black=True):
         )
 
     image = pygame.image.load(str(path)).convert_alpha()
+
+    # Crop transparent margins before resizing the image.
+    bounds = image.get_bounding_rect()
+    if bounds.width and bounds.height:
+        image = image.subsurface(bounds).copy()
 
     if remove_black:
         # Reduce large images to speed up background removal.
