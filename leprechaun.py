@@ -8,16 +8,8 @@ from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
 from entities import Hazard
-from worlds import next_hazard
+from worlds import next_hazard, next_gate, other_world
 from transitions import Transition
-
-
-# -- AJOUT : mondes --
-NORMAL_WORLDS = ('meadow', 'pub', 'cave')
-
-def other_world(current):
-    """Choisit un monde différent du monde actuel."""
-    return random.choice([w for w in NORMAL_WORLDS if w != current])
 
 
 def terminate():
@@ -116,7 +108,7 @@ while True:
     hud.reset()
     pygame.mixer.music.play(-1, 0.0)
 
-    # --- AJOUT : mondes et portails ---
+    # AJOUT : mondes et portails
     world = 'meadow'                                    # monde affiché
     distance = 0                                        # distance parcourue (en mètres)
     next_portal = random.randint(PORTAL_MIN, PORTAL_MAX)  # distance du prochain portail
@@ -124,15 +116,11 @@ while True:
     portal_x = None                                     # position du portail à l'écran (None = pas de portail)
     portal_destination = None                           # monde où mène le portail
 
-
-    while True: # The game loop runs while the game part is playing.
-        score += 1 # Increase score.
-
     # Loop of a game.
     while True:
         # No fixed time step to remain consistent with the current physics.
         dt = 1 / FPS
-
+        score += 1 # Increase score.
         # 1. Read commands.
         for event in pygame.event.get():
             if event.type == QUIT:
