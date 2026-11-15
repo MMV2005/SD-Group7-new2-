@@ -1,6 +1,7 @@
 import pygame, random, sys, math
 from pygame.locals import *
 from entities import *
+from coins import CoinSpawner
 from menu import show_menu
 from settings import*
 from gravity import JetpackPhysics
