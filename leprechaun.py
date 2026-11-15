@@ -215,7 +215,10 @@ while True:
         # Draw the game world on the window.
         visuals.draw_background(windowSurface, world)
 
-    
+        # Draw the coins after the background, but before the player
+        # so that the player is displayed in front of them
+        coins.draw(windowSurface)
+
         # Draw the player.
         visuals.draw_player(windowSurface, playerRect)
 
