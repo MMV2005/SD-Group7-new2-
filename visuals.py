@@ -55,11 +55,6 @@ class Visuals:
         self.image = self.frames[index]
         self.mask = self.masks[index]
 
-    def draw_player(self, screen, player_rect):
-        """Draw the current pose at the position given by player_rect."""
-        screen.blit(self.image, player_rect)
-
-    
     @staticmethod
     def load_background():
         """Load the image once, then align its ground line on FLOOR."""
