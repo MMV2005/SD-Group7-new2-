@@ -5,6 +5,7 @@ from menu import afficher_menu
 from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
+from transitions import Transition   # AJOUT : transition entre les mondes
 
 TEXTCOLOR = (255, 255, 255)
 BACKGROUNDCOLOR = (255, 255, 255)
@@ -14,6 +15,13 @@ BADDIEMINSPEED = 1
 BADDIEMAXSPEED = 8
 ADDNEWBADDIERATE = 50
 PLAYERMOVERATE = 5
+
+# --- AJOUT : mondes ---
+NORMAL_WORLDS = ('meadow', 'pub', 'cave')
+
+def other_world(current):
+    """Choisit un monde différent du monde actuel."""
+    return random.choice([w for w in NORMAL_WORLDS if w != current])
 
 def terminate():
     pygame.quit()
@@ -82,6 +90,13 @@ while True:
     baddieAddCounter = 0
     coins = []                 # particules du jet de pièces
     jet_accumulator = 0.0      # reste fractionnaire : 145/60 = 2,4 pièces par image
+    # --- AJOUT : mondes et portails ---
+    world = 'meadow'                                    # monde affiché
+    distance = 0                                        # distance parcourue (en mètres)
+    next_portal = random.randint(PORTAL_MIN, PORTAL_MAX)  # distance du prochain portail
+    transition = None                                   # transition en cours (ou None)
+    portal_x = None                                     # position du portail à l'écran (None = pas de portail)
+    portal_destination = None                           # monde où mène le portail
     pygame.mixer.music.play(-1, 0.0)
 
     while True: # The game loop runs while the game part is playing.
@@ -102,6 +117,13 @@ while True:
                         terminate()
                 if event.key == K_SPACE:
                     thrusting = False
+
+        # --- AJOUT : portail dû, en approche ou transition en cours (même principe que la version finale) ---
+        # Plus aucun nouvel ennemi (le compteur reste à zéro). Le portail n'apparaît que lorsque le dernier
+        # ennemi a quitté l'écran : aucun ennemi n'est donc rattrapé ni supprimé par le portail.
+        gate_pending = portal_x is not None or transition is not None or distance >= next_portal
+        if gate_pending:
+            baddieAddCounter = 0
 
         # Add new baddies at the right of the screen, if needed.
         baddieAddCounter += 1
@@ -152,6 +174,24 @@ while True:
             if c['life'] <= 0 or c['y'] > FLOOR:
                 coins.remove(c)
 
+        # --- AJOUT : portail + changement de monde (utilise le dt défini plus haut) ---
+        distance += START_SPEED * dt * METRES_PER_PIXEL     # 300 px/s * 0.1 = 30 m/s
+        if portal_x is None and transition is None and distance >= next_portal and not baddies:   # écran vide
+            portal_x = WINDOWWIDTH + 140                    # le portail arrive par la droite, avec son nuage
+            portal_destination = other_world(world)
+        if portal_x is not None:
+            portal_x -= START_SPEED * dt                    # le portail avance vers le joueur
+            if portal_x <= playerRect.right:                # le joueur atteint le portail : la transition démarre
+                transition = Transition(portal_destination, start_x=portal_x - 20, portal_x=portal_x)
+                portal_x = None
+        if transition:
+            if transition.update(dt):                       # True une seule fois : écran entièrement couvert
+                world = transition.destination              # on change le fond
+            if transition.done:
+                transition = None
+                # Le portail suivant se calcule APRÈS la transition : deux transitions ne peuvent pas s'enchaîner.
+                next_portal = distance + random.randint(PORTAL_MIN, PORTAL_MAX)
+
         # Move the baddies from the right side of the screen.
         for b in baddies:
             b['rect'].move_ip(-b['speed'], 0)
@@ -162,7 +202,7 @@ while True:
                 baddies.remove(b)
 
         # Draw the game world on the window.
-        visuals.draw_background(windowSurface)
+        visuals.draw_background(windowSurface, world)
 
         # Bandeau du plafond (de 0 à CEILING)
         pygame.draw.rect(windowSurface, (10, 35, 38), (0, 0, WINDOWWIDTH, CEILING))
@@ -189,6 +229,12 @@ while True:
         # Draw each baddie.
         for b in baddies:
             windowSurface.blit(b['surface'], b['rect'])
+
+        # --- AJOUT : portail avec son nuage, puis rideau de transition (par-dessus tout le reste) ---
+        if portal_x is not None:
+            visuals.draw_portal(windowSurface, portal_x)
+        if transition:
+            transition.draw(windowSurface, visuals.portal_image)   # le portail est emporté avec le rideau
 
         pygame.display.update()
 
