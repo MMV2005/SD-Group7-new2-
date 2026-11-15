@@ -4,6 +4,7 @@ from reglages_personnages import *
 
 # settings.2 : Fenetre et limites jouables.
 WINDOWWIDTH, WINDOWHEIGHT, FPS = 960, 540, 60           # Taille de la fenetre (largeur et hauteur en pixels) et nombre d'images par seconde (FPS).
+WIDTH, HEIGHT = WINDOWWIDTH, WINDOWHEIGHT
 CEILING, FLOOR = 90, 475                    # Limites jouables (en pixels) : plafond et sol. Le personnage ne peut pas depasser ces limites.
 ROOT = Path(__file__).resolve().parent      # Trouver le dossier contenant ce fichier Python.
                                         #__file__ : contient le chemin du fichier Python dans lequel cette ligne est écrite. Ici, elle désigne settings.py.
@@ -20,7 +21,7 @@ SPEED_PER_METER = 0.045                    # +45 pixels/seconde tous les 1000 me
 METERS_PER_PIXEL = 0.1                     # Conversion de pixels à metres (1 pixel = 0.1 metre)
 
 # settings.4 : Mondes et transitions.
-PORTAL_MIN, PORTAL_MAX = 1000, 1400        # Distance minimale et maximale entre deux portails (en metres).
+PORTAL_MIN, PORTAL_MAX = 300, 400          # Distance minimale et maximale entre deux portails (en metres).
 TRANSITION_SECONDS = 1.6                   # Durée de la transition entre deux mondes (en secondes).
 SAFE_SECONDS = 1.5                         # Durée de la zone de sécurité après un portail (en secondes).
 GOLD_SECONDS = 10.0                        # Durée de la zone de bonus dans le monde cité d'or (en secondes).
