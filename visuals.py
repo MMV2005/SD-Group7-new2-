@@ -1,48 +1,52 @@
 """Visuals - player 3-frame animation, loaded when Visuals() is created."""
-import pygame
+import pygame, math, random
 from settings import *
+from reglages_personnages import *
 from transitions import draw_fog   # AJOUT : nuage de fumée du portail
-#from reglages_personnages import ANIMATION_FPS, FRAME_SEQUENCE
-PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
-ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du personnage (FPS).
-FRAME_SEQUENCE = (0, 1, 2, 1)  # Order in which the 3 poses are played.
 
-# --- AJOUT : fonds (un par monde) ---
+PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
+
+#--- fonds (un par monde) ---
 BACKGROUND_FOLDER = ASSETS / 'world'
-# y de la ligne du sol dans chaque image SOURCE (pixels), valeurs de l'ancien jeu.
+# y de la ligne du sol dans chaque image SOURCE (pixels).
 BACKGROUND_HORIZONS = {'meadow': 800, 'pub': 830, 'cave': 805, 'gold': 755}
+GOOSE_FRAMES_FOLDER = ASSETS / 'goose'
+ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du personnage (FPS).
 
 # --- AJOUT : portail ---
 PORTAL_FILE = ASSETS / 'transition' / 'portal.png'
-PORTAL_SIZE = (210, 425)              # taille du portail à l'écran (valeur de l'ancien jeu)
+PORTAL_SIZE = (210, 425)              # taille du portail à l'écran
+
 
 class Visuals:
     def __init__(self):
-        # IMPORTANT: convert_alpha() needs the display to exist already,
-        # so Visuals() must be created AFTER pygame.display.set_mode(...).
-
-        # Load the 3 frames once at startup (never inside the game loop).
-        # convert_alpha() keeps PNG transparency and speeds up drawing.
         self.frames = [
             pygame.image.load(str(PLAYER_FRAMES_FOLDER / f'vol_{i}.png')).convert_alpha()
-            for i in range(3)
-        ]
-        # One pixel-perfect mask per frame: each pose has a slightly
-        # different silhouette, so each needs its own collision mask.
+            for i in range(3)]
+        
         self.masks = [pygame.mask.from_surface(frame) for frame in self.frames]
 
-        # Image and mask of the pose currently displayed. They are refreshed
+        #Image and mask of the pose currently displayed. They are refreshed
         # by update_pose(), which must be called once per game loop turn.
         self.image = self.frames[0]
         self.mask = self.masks[0]
 
-        # --- AJOUT : tous les fonds, chargés une seule fois ---
+        # --- fonds, chargés une seule fois (un par monde) ---
         self.backgrounds = {name: self.load_background(name) for name in BACKGROUND_HORIZONS}
 
         # --- AJOUT : image du portail, chargée une seule fois ---
         portal = pygame.image.load(str(PORTAL_FILE)).convert_alpha()
         portal = portal.subsurface(portal.get_bounding_rect(min_alpha=20))   # enlève les bords transparents
         self.portal_image = pygame.transform.scale(portal, PORTAL_SIZE)
+
+        self.goose_frames = [
+            pygame.image.load(str(GOOSE_FRAMES_FOLDER / f'goose_{i}.png')).convert_alpha()
+            for i in range(2)]
+        # Un seul masque fixe (les ailes qui battent ne modifient pas la hitbox)
+        self.goose_mask = pygame.mask.from_surface(self.goose_frames[0])
+
+        self.coins = []               # particules actuellement à l'écran
+        self.jet_accumulator = 0.0    # reste fractionnaire : JET_RATE / FPS n'est pas entier
 
     def get_rect(self):
         """Return a new rect of the player's size (same for the 3 poses)."""
@@ -62,11 +66,6 @@ class Visuals:
         self.image = self.frames[index]
         self.mask = self.masks[index]
 
-    def draw_player(self, screen, player_rect):
-        """Draw the current pose at the position given by player_rect."""
-        screen.blit(self.image, player_rect)
-
-    # --- AJOUT : fonds ---
     @staticmethod
     def load_background(name):
         """Load bg_<name>.png once, then align its ground line on FLOOR."""
@@ -85,7 +84,7 @@ class Visuals:
         return background
 
     def draw_background(self, screen, world='meadow'):
-        """Draw the background of the given world. Call it BEFORE anything else each frame."""
+        """Draw the background of the given world. Must be called BEFORE anything else each frame."""
         screen.blit(self.backgrounds[world], (0, 0))
 
     # --- AJOUT : portail ---
@@ -93,3 +92,63 @@ class Visuals:
         """Draw the fog cloud trailing the portal, then the portal itself."""
         draw_fog(screen, portal_x - 20)
         screen.blit(self.portal_image, self.portal_image.get_rect(center=(round(portal_x + 26), 282)))
+
+    def reset_jet(self):
+        """Vide le jet : à appeler au début de chaque partie."""
+        self.coins = []
+        self.jet_accumulator = 0.0
+
+    def update_jet(self, player_rect, thrusting):
+        """Crée et fait avancer les pièces : à appeler une fois par image."""
+        dt = 1 / FPS    # pas de temps fixe (FPS vient de settings)
+
+        # Création : JET_RATE pièces par seconde, plafonnées à JET_MAX
+        if thrusting:
+            self.jet_accumulator += JET_RATE * dt
+            while self.jet_accumulator >= 1 and len(self.coins) < JET_MAX:
+                self.jet_accumulator -= 1
+                life = random.uniform(*JET_LIFE)
+                self.coins.append({
+                    'x': player_rect.left + JET_OFFSET_X,
+                    'y': player_rect.centery + player_rect.height * JET_OFFSET_Y,
+                    'vx': -random.uniform(*JET_SPEED),    # projetée vers l'arrière
+                    'vy': random.uniform(*JET_SPREAD),    # dispersion verticale
+                    'life': life, 'initial': life,        # 'initial' sert au rétrécissement
+                    'angle': random.uniform(0, math.tau), # phase de rotation aléatoire
+                })
+            if len(self.coins) >= JET_MAX:
+                self.jet_accumulator = 0.0                # évite l'accumulation au plafond
+
+        # Mise à jour physique : intégration d'Euler en secondes
+        for c in self.coins:
+            c['vy'] += JET_GRAVITY * dt
+            c['x'] += c['vx'] * dt
+            c['y'] += c['vy'] * dt
+            c['angle'] += 24 * dt     # environ 0,4 rad par image à 60 FPS
+            c['life'] -= dt
+
+        # Suppression des pièces expirées ou arrivées au sol
+        self.coins = [c for c in self.coins if c['life'] > 0 and c['y'] <= FLOOR]
+
+    def draw_jet(self, screen):
+        """Dessine les pièces du jet."""
+        for c in self.coins:
+            # Hauteur proportionnelle à la vie restante : la pièce rétrécit
+            h = max(3, round(10 * c['life'] / c['initial']))
+            # Largeur en |cos(angle)| : effet de pièce qui tourne sur elle-même
+            w = max(2, round(h * abs(math.cos(c['angle']))))
+            rect = (round(c['x']), round(c['y']), w, h)
+            pygame.draw.ellipse(screen, COIN_FILL, rect)
+            pygame.draw.ellipse(screen, COIN_EDGE, rect, 1)
+
+    def draw_player(self, screen, player_rect):
+        """Dessine le jet, puis la pose actuelle du joueur."""
+        self.draw_jet(screen)                  # d'abord les pièces : elles passent derrière le sprite
+        screen.blit(self.image, player_rect)
+    
+    #Visuals.14 
+    def get_goose_rect(self, center_x, center_y): #Return a rect for a new goose centered on (center_x, center_y).
+        return self.goose_frames[0].get_rect(center=(center_x, center_y))
+    def draw_goose(self, screen, baddie): #Draw goose_0 or goose_1 depending on the goose's age (GOOSE_FPS = 6).
+        index = int(baddie['age'] * GOOSE_FPS) % 2
+        screen.blit(self.goose_frames[index], baddie['rect'])

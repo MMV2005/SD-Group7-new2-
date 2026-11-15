@@ -8,7 +8,7 @@ from visuals import Visuals
 from transitions import Transition   # AJOUT : transition entre les mondes
 
 TEXTCOLOR = (255, 255, 255)
-BACKGROUNDCOLOR = (255, 255, 255)
+BACKGROUNDCOLOR = (5, 25, 30)
 BADDIEMINSIZE = 100
 BADDIEMAXSIZE = 100
 BADDIEMINSPEED = 1
@@ -73,7 +73,6 @@ pygame.mixer.music.load('assets/background.mid')
 visuals = Visuals()               # loads the 3 frames and their masks
 playerRect = visuals.get_rect()
 playerMask = pygame.mask.from_surface(visuals.frames[0]) # Crée la hitbox au pixel près du joueur
-baddieImage = pygame.image.load('assets/baddie.png').convert_alpha()
 
 # Show the "Start" screen.
 afficher_menu(windowSurface, 0, None)
@@ -88,8 +87,7 @@ while True:
     gravity.reset(playerRect.centery)
     thrusting = False
     baddieAddCounter = 0
-    coins = []                 # particules du jet de pièces
-    jet_accumulator = 0.0      # reste fractionnaire : 145/60 = 2,4 pièces par image
+    visuals.reset_jet()        # vide le jet à chaque nouvelle partie
     # --- AJOUT : mondes et portails ---
     world = 'meadow'                                    # monde affiché
     distance = 0                                        # distance parcourue (en mètres)
@@ -118,63 +116,45 @@ while True:
                 if event.key == K_SPACE:
                     thrusting = False
 
-        # --- AJOUT : portail dû, en approche ou transition en cours (même principe que la version finale) ---
-        # Plus aucun nouvel ennemi (le compteur reste à zéro). Le portail n'apparaît que lorsque le dernier
-        # ennemi a quitté l'écran : aucun ennemi n'est donc rattrapé ni supprimé par le portail.
+        # Nombre maximum d'oies à l'écran selon l'avancement (worlds.11)
+        distance_meters = score 
+        if distance_meters < TWO_OBSTACLES_DISTANCE:
+            max_baddies = 1
+        elif distance_meters < THREE_OBSTACLES_DISTANCE:
+            max_baddies = 2
+        else: 
+            max_baddies = 3
+        # 2. Vérifier l'écart minimal (OBSTACLE_GAP_MIN = 280 px) avec la dernière oie
+        can_spawn = True
+        if baddies:
+            last_x = max(b['rect'].centerx for b in baddies)
+            if (WINDOWWIDTH + 80) - last_x < OBSTACLE_GAP_MIN:
+                can_spawn = False
+
+        # --- AJOUT : portail dû, en approche ou transition en cours : plus aucune nouvelle oie ---
+        # Le portail n'apparaît que lorsque la dernière oie a quitté l'écran : aucune oie n'est rattrapée ni supprimée.
         gate_pending = portal_x is not None or transition is not None or distance >= next_portal
         if gate_pending:
-            baddieAddCounter = 0
-
-        # Add new baddies at the right of the screen, if needed.
-        baddieAddCounter += 1
-        if baddieAddCounter == ADDNEWBADDIERATE:
-            baddieAddCounter = 0
-            baddieSize = random.randint(BADDIEMINSIZE, BADDIEMAXSIZE)
-            # On redimensionne l'image d'abord pour pouvoir créer son masque juste après
-            scaledBaddie = pygame.transform.scale(baddieImage, (baddieSize, baddieSize))
-            newBaddie = {'rect': pygame.Rect(
-                WINDOWWIDTH,
-                random.randint(CEILING, FLOOR - baddieSize), baddieSize, baddieSize),
-            'speed': random.randint(BADDIEMINSPEED, BADDIEMAXSPEED),
-            'surface': scaledBaddie,
-            'mask': pygame.mask.from_surface(scaledBaddie), # Hitbox au pixel près de l'ennemi
+            can_spawn = False
+        
+        #3. Faire apparaître une nouvelle oie dès que le quota (< max_baddies) et l'écart (280 px) le permettent
+        if len(baddies) < max_baddies and can_spawn:
+            goose_y = random.choice(MEADOW_HEIGHTS)
+            newBaddie = {
+                'rect': visuals.get_goose_rect(WINDOWWIDTH + 80, goose_y),
+                'speed': round(START_SPEED / FPS),
+                'mask': visuals.goose_mask,
+                'age': 0.0,
             }
-
             baddies.append(newBaddie)
 
         # Move the player.
         playerRect.centery = gravity.update(thrusting, playerRect.height, WINDOWHEIGHT)
 
-        #jet de pièces 
-        dt = 1 / FPS               # pas de temps fixe, puisque main.py tourne à FPS constant
-        # Création : JET_RATE particules par seconde, plafonnées à JET_MAX
-        if thrusting:
-            jet_accumulator += JET_RATE * dt
-            while jet_accumulator >= 1 and len(coins) < JET_MAX:
-                jet_accumulator -= 1
-                life = random.uniform(*JET_LIFE)
-                coins.append({
-                    'x': playerRect.left + 8,
-                    'y': playerRect.centery + playerRect.height * 0.25,
-                    'vx': -random.uniform(*JET_SPEED),      # vers l'arrière
-                    'vy': random.uniform(*JET_SPREAD),      # dispersion verticale
-                    'life': life, 'initial': life,
-                    'angle': random.uniform(0, math.tau),
-                })
-            if len(coins) >= JET_MAX:
-                jet_accumulator = 0.0                       # évite l'accumulation quand le plafond est atteint
+        visuals.update_jet(playerRect, thrusting)    # crée et fait avancer les pièces
 
-        # Mise à jour : mêmes équations qu'avant, mais en secondes
-        for c in coins[:]:
-            c['vy'] += JET_GRAVITY * dt
-            c['x'] += c['vx'] * dt
-            c['y'] += c['vy'] * dt
-            c['angle'] += 24 * dt # environ 0,4 rad par image
-            c['life'] -= dt
-            if c['life'] <= 0 or c['y'] > FLOOR:
-                coins.remove(c)
-
-        # --- AJOUT : portail + changement de monde (utilise le dt défini plus haut) ---
+        # --- AJOUT : portail + changement de monde ---
+        dt = 1 / FPS                                        # pas de temps fixe (main.py tourne à FPS constant)
         distance += START_SPEED * dt * METRES_PER_PIXEL     # 300 px/s * 0.1 = 30 m/s
         if portal_x is None and transition is None and distance >= next_portal and not baddies:   # écran vide
             portal_x = WINDOWWIDTH + 140                    # le portail arrive par la droite, avec son nuage
@@ -195,6 +175,7 @@ while True:
         # Move the baddies from the right side of the screen.
         for b in baddies:
             b['rect'].move_ip(-b['speed'], 0)
+            b['age'] += 1 / FPS  # Incrémenter l'âge de l'oie pour l'animation des ailes
 
         # Supprimer les obstacles entièrement sortis à gauche.
         for b in baddies[:]:
@@ -212,23 +193,13 @@ while True:
         drawText('Score: %s' % (score), font, windowSurface, 10, 0)
         drawText('Top Score: %s' % (topScore), font, windowSurface, 10, 40)
 
-        
-        # Dessin des pièces du jet (avant le joueur, pour qu'elles semblent en sortir)
-        for c in coins:
-            # Taille proportionnelle à la durée de vie restante : elles rétrécissent en fin de vie
-            h = max(3, round(10 * c['life'] / c['initial']))
-            # Largeur en |cos(angle)| : simule la pièce qui tourne sur elle-même
-            w = max(2, round(h * abs(math.cos(c['angle']))))
-            rect = (round(c['x']), round(c['y']), w, h)
-            pygame.draw.ellipse(windowSurface, (242, 171, 24), rect)       # corps doré
-            pygame.draw.ellipse(windowSurface, (255, 214, 99), rect, 1)    # contour clair
 
         # Draw the player.
         visuals.draw_player(windowSurface, playerRect)
 
         # Draw each baddie.
         for b in baddies:
-            windowSurface.blit(b['surface'], b['rect'])
+            visuals.draw_goose(windowSurface, b)
 
         # --- AJOUT : portail avec son nuage, puis rideau de transition (par-dessus tout le reste) ---
         if portal_x is not None:
@@ -239,7 +210,7 @@ while True:
         pygame.display.update()
 
         # Check if any of the baddies have hit the player.
-        if playerHasHitBaddie(playerRect, playerMask, baddies):
+        if playerHasHitBaddie(playerRect, visuals.mask, baddies):
             if score > topScore:
                 topScore = score # set new top score
             break
