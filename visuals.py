@@ -2,14 +2,20 @@
 import pygame, math, random
 from settings import *
 from reglages_personnages import *
+from transitions import draw_fog
 
 PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
 
-#--- fond ---
-BACKGROUND_FILE = ASSETS / 'world' / 'bg_meadow.png'
-BACKGROUND_HORIZON = 800 # y of the ground line in the SOURCE image (pixels).
+#--- fonds (un par monde) ---
+BACKGROUND_FOLDER = ASSETS / 'world'
+# y de la ligne du sol dans chaque image SOURCE (pixels).
+BACKGROUND_HORIZONS = {'meadow': 800, 'pub': 830, 'cave': 805, 'gold': 755}
 GOOSE_FRAMES_FOLDER = ASSETS / 'goose'
 ANIMATION_FPS = 9           # Nombre d'images par seconde pour l'animation du personnage (FPS).
+
+# --- AJOUT : portail ---
+PORTAL_FILE = ASSETS / 'transition' / 'portal.png'
+PORTAL_SIZE = (210, 425)              # taille du portail à l'écran
 
 
 class Visuals:
@@ -25,8 +31,14 @@ class Visuals:
         self.image = self.frames[0]
         self.mask = self.masks[0]
 
-        # --- fond, chargé une seule fois ---
-        self.background = self.load_background()
+        # --- fonds, chargés une seule fois (un par monde) ---
+        self.backgrounds = {name: self.load_background(name) for name in BACKGROUND_HORIZONS}
+
+        # --- AJOUT : image du portail, chargée une seule fois ---
+        portal = pygame.image.load(str(PORTAL_FILE)).convert_alpha()
+        portal = portal.subsurface(portal.get_bounding_rect(min_alpha=20))   # enlève les bords transparents
+        self.portal_image = pygame.transform.scale(portal, PORTAL_SIZE)
+
 
         self.goose_frames = [
             pygame.image.load(str(GOOSE_FRAMES_FOLDER / f'goose_{i}.png')).convert_alpha()
@@ -56,14 +68,15 @@ class Visuals:
         self.mask = self.masks[index]
 
     @staticmethod
-    def load_background():
+    def load_background(world):
         """Load the image once, then align its ground line on FLOOR."""
-        source = pygame.image.load(str(BACKGROUND_FILE)).convert()
+        source = pygame.image.load(str(BACKGROUND_FOLDER / f'bg_{world}.png')).convert()
         w, h = source.get_size()
+        horizon = BACKGROUND_HORIZONS[world]
 
         # Cut the source in two at the horizon: landscape above, soil below.
-        top = source.subsurface((0, 0, w, BACKGROUND_HORIZON))
-        bottom = source.subsurface((0, BACKGROUND_HORIZON, w, h - BACKGROUND_HORIZON))
+        top = source.subsurface((0, 0, w, horizon))
+        bottom = source.subsurface((0, horizon, w, h - horizon))
 
         # Stretch each part so the horizon lands exactly on FLOOR.
         background = pygame.Surface((WINDOWWIDTH, WINDOWHEIGHT))
@@ -71,9 +84,17 @@ class Visuals:
         background.blit(pygame.transform.scale(bottom, (WINDOWWIDTH, WINDOWHEIGHT - FLOOR)), (0, FLOOR))
         return background
 
-    def draw_background(self, screen):
-        """Draw the background. Must be called BEFORE anything else each frame."""
-        screen.blit(self.background, (0, 0))
+    def draw_background(self, screen, world='meadow'):
+        """Draw the background of the given world. Must be called BEFORE anything else each frame."""
+        screen.blit(self.backgrounds[world], (0, 0))
+
+    # --- AJOUT : portail ---
+    def draw_portal(self, screen, portal_x):
+        """Draw the fog cloud trailing the portal, then the portal itself."""
+        draw_fog(screen, portal_x - 20)
+        screen.blit(self.portal_image, self.portal_image.get_rect(center=(round(portal_x + 26), 282)))
+
+
 
     def reset_jet(self):
         """Vide le jet : à appeler au début de chaque partie."""

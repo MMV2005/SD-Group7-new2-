@@ -1,10 +1,11 @@
-import pygame, random, sys, math
+import pygame, random, sys
 from pygame.locals import *
 
 from menu import show_menu
 from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
+from transitions import Transition
 
 TEXTCOLOR = (255, 255, 255)
 BACKGROUNDCOLOR = (5, 25, 30)
@@ -14,6 +15,14 @@ BADDIEMINSPEED = 1
 BADDIEMAXSPEED = 8
 ADDNEWBADDIERATE = 50
 PLAYERMOVERATE = 5
+
+# -- AJOUT : mondes --
+NORMAL_WORLDS = ('meadow', 'pub', 'cave')
+
+def other_world(current):
+    """Choisit un monde différent du monde actuel."""
+    return random.choice([w for w in NORMAL_WORLDS if w != current])
+
 
 def terminate():
     pygame.quit()
@@ -94,6 +103,15 @@ while True:
     visuals.reset_jet()        # vide le jet à chaque nouvelle partie
     pygame.mixer.music.play(-1, 0.0)
 
+    # --- AJOUT : mondes et portails ---
+    world = 'meadow'                                    # monde affiché
+    distance = 0                                        # distance parcourue (en mètres)
+    next_portal = random.randint(PORTAL_MIN, PORTAL_MAX)  # distance du prochain portail
+    transition = None                                   # transition en cours (ou None)
+    portal_x = None                                     # position du portail à l'écran (None = pas de portail)
+    portal_destination = None                           # monde où mène le portail
+
+
     while True: # The game loop runs while the game part is playing.
         score += 1 # Increase score.
 
@@ -127,6 +145,13 @@ while True:
             last_x = max(b['rect'].centerx for b in baddies)
             if (WINDOWWIDTH + 80) - last_x < OBSTACLE_GAP_MIN:
                 can_spawn = False
+
+        # --- AJOUT : portail dû, en approche ou transition en cours : plus aucune nouvelle oie ---
+        # Le portail n'apparaît que lorsque la dernière oie a quitté l'écran : aucune oie n'est rattrapée ni supprimée.
+        gate_pending = portal_x is not None or transition is not None or distance >= next_portal
+        if gate_pending:
+            can_spawn = False
+
         
         #3. Faire apparaître une nouvelle oie dès que le quota (< max_baddies) et l'écart (280 px) le permettent
         if len(baddies) < max_baddies and can_spawn:
@@ -144,6 +169,26 @@ while True:
 
         visuals.update_jet(playerRect, thrusting)    # crée et fait avancer les pièces
 
+        # --- AJOUT : portail + changement de monde ---
+        dt = 1 / FPS
+        distance += START_SPEED * dt * METERS_PER_PIXEL
+        if portal_x is None and transition is None and distance >= next_portal and not baddies:   # écran vide
+            portal_x = WINDOWWIDTH + 140                    # le portail arrive par la droite, avec son nuage
+            portal_destination = other_world(world)
+        if portal_x is not None:
+            portal_x -= START_SPEED * dt                    # le portail avance vers le joueur
+            if portal_x <= playerRect.right:                # le joueur atteint le portail : la transition démarre
+                transition = Transition(portal_destination, start_x=portal_x - 20, portal_x=portal_x)
+                portal_x = None
+        if transition:
+            if transition.update(dt):                       # True une seule fois : écran entièrement couvert
+                world = transition.destination              # on change le fond
+            if transition.done:
+                transition = None
+                # Le portail suivant se calcule APRÈS la transition : deux transitions ne peuvent pas s'enchaîner.
+                next_portal = distance + random.randint(PORTAL_MIN, PORTAL_MAX)
+
+
         # Move the baddies from the right side of the screen.
         for b in baddies:
             b['rect'].move_ip(-b['speed'], 0)
@@ -155,7 +200,7 @@ while True:
                 baddies.remove(b)
 
         # Draw the game world on the window.
-        visuals.draw_background(windowSurface)
+        visuals.draw_background(windowSurface, world)
 
         # Bandeau du plafond (de 0 à CEILING)
         pygame.draw.rect(windowSurface, (10, 35, 38), (0, 0, WINDOWWIDTH, CEILING))
@@ -172,6 +217,12 @@ while True:
         # Draw each baddie.
         for b in baddies:
             visuals.draw_goose(windowSurface, b)
+            # --- AJOUT : portail avec son nuage, puis rideau de transition (par-dessus tout le reste) ---
+        if portal_x is not None:
+            visuals.draw_portal(windowSurface, portal_x)
+        if transition:
+            transition.draw(windowSurface, visuals.portal_image)   # le portail est emporté avec le rideau
+
         pygame.display.update()
 
         # Check if any of the baddies have hit the player.
@@ -185,6 +236,12 @@ while True:
     # Stop the music and play the game-over sound.
     pygame.mixer.music.stop()
     gameOverSound.play()
+
+    drawText('GAME OVER', font, windowSurface, (WINDOWWIDTH / 3), (WINDOWHEIGHT / 3))
+    drawText('Press a key to play again.', font, windowSurface, (WINDOWWIDTH / 3) - 80, (WINDOWHEIGHT / 3) + 50)
+    pygame.display.update()
+    waitForPlayerToPressKey()
+
 
     # Save the latest score before returning to the menu.
     last_score = score
