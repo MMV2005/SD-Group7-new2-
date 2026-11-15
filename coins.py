@@ -17,7 +17,7 @@ class CoinSpawner:
         image = pygame.image.load(ASSETS / 'bonus' / 'gold_coin.png').convert_alpha()
         # Resize the sprite to the size of the hitbox
         self.image = pygame.transform.smoothscale(
-            image, (2 * self.RADIUS, 2 * self.RADIUS))
+            image, (2 * RADIUS, 2 * RADIUS))
 
     def reset(self):
         """Call at the start of each game."""
@@ -28,8 +28,8 @@ class CoinSpawner:
     def _width(self, kind):
         """Horizontal size of a pattern in pixels (used to check the spawn area)."""
         if kind == 'circle':
-            return 2 * self.CIRCLE_R + 2 * self.RADIUS
-        return COINS_PER_GROUP * self.SPACING
+            return 2 * CIRCLE_R + 2 * RADIUS
+        return COINS_PER_WAVE * SPACING
 
     def _zone_is_free(self, baddies, kind):
         """True if no goose is in the spawn area, sized for the chosen pattern."""
@@ -38,33 +38,33 @@ class CoinSpawner:
 
     def _add_coin(self, x, y):
         """Creates one coin centered on (x, y)."""
-        rect = pygame.Rect(0, 0, 2 * self.RADIUS, 2 * self.RADIUS)
+        rect = pygame.Rect(0, 0, 2 * RADIUS, 2 * RADIUS)
         rect.center = (int(x), int(y))
         self.coins.append({'rect': rect})
 
     def _spawn_wave(self):
         """Wavy row of coins, just outside the screen on the right."""
         # Keep the whole row (wave included) between the ceiling and the floor
-        margin = self.AMPLITUDE + self.RADIUS
+        margin = AMPLITUDE + RADIUS
         y = random.randint(CEILING + margin, FLOOR - margin)
 
-        for i in range(COINS_PER_GROUP):
-            x = WINDOWWIDTH + 30 + i * self.SPACING
-            wave = self.AMPLITUDE * math.sin(i * 0.7)
+        for i in range(COINS_PER_WAVE):
+            x = WINDOWWIDTH + 30 + i * SPACING
+            wave = AMPLITUDE * math.sin(i * 0.7)
             self._add_coin(x, y + wave)
 
     def _spawn_circle(self):
         """Circle of coins, entirely outside the screen when it is created."""
         # Center: the left edge of the circle starts 30 px after the right border
-        cx = WINDOWWIDTH + 30 + self.CIRCLE_R + self.RADIUS
+        cx = WINDOWWIDTH + 30 + CIRCLE_R + RADIUS
         # Keep the whole circle between the ceiling and the floor
-        margin = self.CIRCLE_R + self.RADIUS
+        margin = CIRCLE_R + RADIUS
         cy = random.randint(CEILING + margin, FLOOR - margin)
 
-        for k in range(self.CIRCLE_N):
-            angle = 2 * math.pi * k / self.CIRCLE_N     # angle of coin k (radians)
-            x = cx + self.CIRCLE_R * math.cos(angle)
-            y = cy + self.CIRCLE_R * math.sin(angle)
+        for k in range(CIRCLE_N):
+            angle = 2 * math.pi * k / CIRCLE_N     # angle of coin k (radians)
+            x = cx + CIRCLE_R * math.cos(angle)
+            y = cy + CIRCLE_R * math.sin(angle)
             self._add_coin(x, y)
 
     def _spawn(self, kind):
