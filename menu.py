@@ -76,8 +76,27 @@ def show_menu(window, high_score=0, last_score=None,
     """Display the menu in a 960 × 540 window."""
 
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("arial", 18, bold=True)
-    title_font = pygame.font.SysFont("arial", 24, bold=True)
+
+    # Locate the folder containing the font files.
+    fonts_dir = Path(__file__).resolve().parent / "assets" / "fonts"
+
+    # Use Pixelify Sans for rules, scores, and the coin counter.
+    font = pygame.font.Font(
+        str(fonts_dir / "pixelify.ttf"), 22
+    )
+
+    # Use Press Start 2P for the game title.
+    title_font = pygame.font.Font(
+        str(fonts_dir / "press_start.ttf"), 20
+    )
+
+    # Use Tiny5 Duo for all buttons.
+    button_font = pygame.font.Font(
+        str(fonts_dir / "tiny5_duo.ttf"), 24
+    )
+    small_button_font = pygame.font.Font(
+        str(fonts_dir / "tiny5_duo.ttf"), 14
+    )
 
     background = load_image("background", (960, 540), False)
     title = load_image("title", (540, 170))
@@ -85,6 +104,7 @@ def show_menu(window, high_score=0, last_score=None,
     wooden_button = load_image("wooden_button", (350, 54))
     small_button = load_image("wooden_button", (180, 38))
     chest = load_image("chest", (55, 55))
+    coin_panel = load_image("wooden_button", (240, 54))
 
     # Darken the background to make the text easier to read.
     overlay = pygame.Surface((960, 540), pygame.SRCALPHA)
@@ -108,7 +128,16 @@ def show_menu(window, high_score=0, last_score=None,
 
     def draw_button(message, rectangle, image):
         window.blit(image, rectangle)
-        draw_text(message, rectangle.center)
+
+        # Use smaller text for the rules and sound buttons.
+        selected_font = (
+            small_button_font
+            if message == "RULES AND CONTROLS"
+            or message.startswith("SOUND:")
+            else button_font
+        )
+
+        draw_text(message, rectangle.center, selected_font)
 
     previous_cursor_visibility = pygame.mouse.get_visible()
     pygame.mouse.set_visible(True)
@@ -155,9 +184,14 @@ def show_menu(window, high_score=0, last_score=None,
             window.blit(background, (0, 0))
             window.blit(overlay, (0, 0))
             window.blit(title, (210, 40))
-            draw_text("LEPRECHAUN ESCAPE", (480, 140), title_font)
+            draw_text("LEPRECHAUN", (480, 125), title_font)
+            draw_text("ESCAPE", (480, 155), title_font)
+            # Draw the wooden panel behind the coin counter.
+            window.blit(coin_panel, (15, 10))
+
+            # Draw the chest icon and coin count over the panel.
             window.blit(chest, (20, 10))
-            draw_text(f"CHEST: {coins}", (140, 35))
+            draw_text(f"CHEST: {coins}", (160, 37), button_font)
 
             if page == "home":
                 for label, rectangle in buttons:

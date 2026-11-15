@@ -1,7 +1,8 @@
 import pygame, random, sys
 from game_strip import GameStrip
 from pygame.locals import *
-
+from entities import *
+from coins import CoinSpawner
 from menu import show_menu
 from settings import*
 from gravity import JetpackPhysics
@@ -81,6 +82,8 @@ topScore = 0
 last_score = None
 sound_enabled = True
 gravity = JetpackPhysics()
+coins = CoinSpawner()
+coin_count = 0
 
 while True:
     # Show the menu before each game.
@@ -98,6 +101,8 @@ while True:
     # Set up the start of the game.
     baddies = []
     score = 0
+    coins.reset()
+    coin_count = 0
     playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
     gravity.reset(playerRect.centery)
     thrusting = False
@@ -196,6 +201,11 @@ while True:
         for b in baddies:
             b['rect'].move_ip(-b['speed'], 0)
             b['age'] += 1 / FPS  # Incrémenter l'âge de l'oie pour l'animation des ailes
+
+        # Coin speed matches the geese speed (pixels per frame)
+        coin_speed = round(START_SPEED / FPS)
+        # Update coins (spawn, move, collect) and add the collected ones to the counter
+        coin_count += coins.update(playerRect, coin_speed, baddies)
 
         # Supprimer les obstacles entièrement sortis à gauche.
         for b in baddies[:]:
