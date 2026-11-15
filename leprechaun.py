@@ -69,7 +69,7 @@ font = pygame.font.SysFont(None, 48)
 gameOverSound = pygame.mixer.Sound('assets/gameover.wav')
 pygame.mixer.music.load('assets/background.mid')
 
-# Set up images.
+# Set up images !
 visuals = Visuals()               # loads the 3 frames and their masks
 playerRect = visuals.get_rect()
 playerMask = pygame.mask.from_surface(visuals.frames[0]) # Crée la hitbox au pixel près du joueur
