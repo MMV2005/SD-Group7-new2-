@@ -1,4 +1,5 @@
 import pygame, random, sys
+from game_strip import GameStrip
 from pygame.locals import *
 
 from menu import show_menu
@@ -72,6 +73,7 @@ pygame.mixer.music.load('assets/background.mid')
 
 # Set up images.
 visuals = Visuals()               # loads the 3 frames and their masks
+hud = GameStrip()
 playerRect = visuals.get_rect()
 playerMask = pygame.mask.from_surface(visuals.frames[0]) # Crée la hitbox au pixel près du joueur
 
@@ -101,6 +103,7 @@ while True:
     thrusting = False
     baddieAddCounter = 0
     visuals.reset_jet()        # vide le jet à chaque nouvelle partie
+    hud.reset()
     pygame.mixer.music.play(-1, 0.0)
 
     # --- AJOUT : mondes et portails ---
@@ -202,15 +205,7 @@ while True:
         # Draw the game world on the window.
         visuals.draw_background(windowSurface, world)
 
-        # Bandeau du plafond (de 0 à CEILING)
-        pygame.draw.rect(windowSurface, (10, 35, 38), (0, 0, WINDOWWIDTH, CEILING))
-        pygame.draw.line(windowSurface, (25, 60, 60), (0, CEILING), (WINDOWWIDTH, CEILING), 2)
-
-        # Draw the score and top score.
-        drawText('Score: %s' % (score), font, windowSurface, 10, 0)
-        drawText('Top Score: %s' % (topScore), font, windowSurface, 10, 40)
-
-
+    
         # Draw the player.
         visuals.draw_player(windowSurface, playerRect)
 
@@ -223,6 +218,7 @@ while True:
         if transition:
             transition.draw(windowSurface, visuals.portal_image)   # le portail est emporté avec le rideau
 
+        hud.draw(windowSurface, score, globals().get('coin_count', 0), topScore)
         pygame.display.update()
 
         # Check if any of the baddies have hit the player.
