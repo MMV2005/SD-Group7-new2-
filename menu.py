@@ -208,7 +208,11 @@ def show_menu(window, high_score=0, last_score=None,
                     )
 
                 if last_score is not None:
-                    draw_text(f"Last score: {last_score}", (540, 510))
+                    draw_text(
+                        f"LAST SCORE: {last_score}",
+                        (window.get_width() // 2, 510),
+                        button_font
+                    )
 
             else:
                 pygame.draw.rect(
