@@ -5,15 +5,9 @@ from menu import show_menu
 from settings import*
 from gravity import JetpackPhysics
 from visuals import Visuals
+from entities import Hazard
+from worlds import next_hazard
 
-TEXTCOLOR = (255, 255, 255)
-BACKGROUNDCOLOR = (5, 25, 30)
-BADDIEMINSIZE = 100
-BADDIEMAXSIZE = 100
-BADDIEMINSPEED = 1
-BADDIEMAXSPEED = 8
-ADDNEWBADDIERATE = 50
-PLAYERMOVERATE = 5
 
 def terminate():
     pygame.quit()
@@ -29,17 +23,6 @@ def waitForPlayerToPressKey():
                     terminate()
                 return
 
-# Source : Documentation Pygame (https://www.pygame.org/docs/ref/mask.html)
-def playerHasHitBaddie(playerRect, playerMask, baddies):
-    for b in baddies:
-        # Calcul de la distance (offset) entre le coin haut-gauche du joueur et celui de l'ennemi
-        offset_x = b['rect'].left - playerRect.left
-        offset_y = b['rect'].top - playerRect.top
-
-        # Vérifie si les pixels non-transparents des deux masques se superposent
-        if playerMask.overlap(b['mask'], (offset_x, offset_y)) is not None:
-            return True
-    return False
 
 def drawText(text, font, surface, x, y):
     textobj = font.render(text, 1, TEXTCOLOR)
@@ -61,10 +44,15 @@ font = pygame.font.SysFont(None, 48)
 gameOverSound = pygame.mixer.Sound('assets/gameover.wav')
 pygame.mixer.music.load('assets/background.mid')
 
-# Set up images.
-visuals = Visuals()               # loads the 3 frames and their masks
+# Set up visuals and mask.
+visuals = Visuals()
 playerRect = visuals.get_rect()
-playerMask = pygame.mask.from_surface(visuals.frames[0]) # Crée la hitbox au pixel près du joueur
+
+# Provide the shared resources to all hazards.
+Hazard.configure(
+    visuals.obstacle_frames,
+    visuals.obstacle_masks,
+    visuals.jet_images)
 
 topScore = 0
 last_score = None
@@ -84,21 +72,33 @@ while True:
     pygame.mixer.music.set_volume(1.0 if sound_enabled else 0.0)
     gameOverSound.set_volume(1.0 if sound_enabled else 0.0)
 
-    # Set up the start of the game.
-    baddies = []
+    # Prepare a new game.
+    hazards = []
+
+    world = 'meadow'
+    distance = 0.0
     score = 0
-    playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT /2)
+
+    # Speed in pixels per second.
+    speed = START_SPEED
+
+    # Wait a bit before the first obstacle.
+    danger_timer = 1.5
+
+    playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT / 2)
+
     gravity.reset(playerRect.centery)
     thrusting = False
-    baddieAddCounter = 0
-    visuals.reset_jet()        # vide le jet à chaque nouvelle partie
+
+    visuals.reset_jet()
     pygame.mixer.music.play(-1, 0.0)
 
-    while True: # The game loop runs while the game part is playing.
-        score += 1 # Increase score.
+    # Loop of a game.
+    while True:
+        # No fixed time step to remain consistent with the current physics.
+        dt = 1 / FPS
 
-        visuals.update_pose()
-
+        # 1. Read commands.
         for event in pygame.event.get():
             if event.type == QUIT:
                 terminate()
@@ -109,77 +109,78 @@ while True:
 
             if event.type == KEYUP:
                 if event.key == K_ESCAPE:
-                        terminate()
+                    terminate()
+
                 if event.key == K_SPACE:
                     thrusting = False
 
-        # Nombre maximum d'oies à l'écran selon l'avancement (worlds.11)
-        distance_meters = score 
-        if distance_meters < TWO_OBSTACLES_DISTANCE:
-            max_baddies = 1
-        elif distance_meters < THREE_OBSTACLES_DISTANCE:
-            max_baddies = 2
-        else: 
-            max_baddies = 3
-        # 2. Vérifier l'écart minimal (OBSTACLE_GAP_MIN = 280 px) avec la dernière oie
-        can_spawn = True
-        if baddies:
-            last_x = max(b['rect'].centerx for b in baddies)
-            if (WINDOWWIDTH + 80) - last_x < OBSTACLE_GAP_MIN:
-                can_spawn = False
-        
-        #3. Faire apparaître une nouvelle oie dès que le quota (< max_baddies) et l'écart (280 px) le permettent
-        if len(baddies) < max_baddies and can_spawn:
-            goose_y = random.choice(MEADOW_HEIGHTS)
-            newBaddie = {
-                'rect': visuals.get_goose_rect(WINDOWWIDTH + 80, goose_y),
-                'speed': round(START_SPEED / FPS),
-                'mask': visuals.goose_mask,
-                'age': 0.0,
-            }
-            baddies.append(newBaddie)
+        # 2. Update the distance and the score. 
+        distance += speed * dt * METRES_PER_PIXEL
+        score = int(distance)
 
-        # Move the player.
+        # 3. Update the player’s position and the jet’s position and animation.
+        visuals.update_pose()
         playerRect.centery = gravity.update(thrusting, playerRect.height, WINDOWHEIGHT)
+        visuals.update_jet(playerRect, thrusting)
 
-        visuals.update_jet(playerRect, thrusting)    # crée et fait avancer les pièces
+        # 4. Move the existing obstacles.
+        for obstacle in hazards:
+            obstacle.update(dt, speed, playerRect)
 
-        # Move the baddies from the right side of the screen.
-        for b in baddies:
-            b['rect'].move_ip(-b['speed'], 0)
-            b['age'] += 1 / FPS  # Incrémenter l'âge de l'oie pour l'animation des ailes
+        # Discard the obstacles that have left the screen or finished their jet.
+        hazards = [
+            obstacle
+            for obstacle in hazards
+            if not obstacle.offscreen()]
 
-        # Supprimer les obstacles entièrement sortis à gauche.
-        for b in baddies[:]:
-            if b['rect'].right < 0:
-                baddies.remove(b)
+        # 5. Try to create a new obstacle.
+        danger_timer -= dt
 
-        # Draw the game world on the window.
+        if danger_timer <= 0:
+            obstacle = next_hazard(world, distance, hazards, speed, playerRect.centerx)
+
+            if obstacle is not None:
+                hazards.append(obstacle)
+
+                # Avancer progressivement du délai initial au délai minimal.
+                progress = min(1.0, distance / DENSITY_MAX_DISTANCE)
+
+                interval = (OBSTACLE_INTERVAL_START + (OBSTACLE_INTERVAL_MIN - OBSTACLE_INTERVAL_START) * progress)
+
+                danger_timer = max( OBSTACLE_INTERVAL_MIN, interval * random.uniform(0.9, 1.1))
+            else:
+                # Réessayer bientôt si les règles interdisent l’apparition.
+                danger_timer = 0.15
+ 
+        # 6. Verify the collisions using the mask of the player and the obstacles. The collision is detected if the masks overlap.
+        collision = False
+
+        for obstacle in hazards:
+            if obstacle.collides_with(playerRect, visuals.mask):
+                collision = True
+                break
+
+        # 7. Draw the game.
         visuals.draw_background(windowSurface)
-
-        # Bandeau du plafond (de 0 à CEILING)
-        pygame.draw.rect(windowSurface, (10, 35, 38), (0, 0, WINDOWWIDTH, CEILING))
-        pygame.draw.line(windowSurface, (25, 60, 60), (0, CEILING), (WINDOWWIDTH, CEILING), 2)
-
-        # Draw the score and top score.
-        drawText('Score: %s' % (score), font, windowSurface, 10, 0)
-        drawText('Top Score: %s' % (topScore), font, windowSurface, 10, 40)
-
-
-        # Draw the player.
+        for obstacle in hazards:
+            visuals.draw_obstacle(windowSurface, obstacle)
         visuals.draw_player(windowSurface, playerRect)
 
-        # Draw each baddie.
-        for b in baddies:
-            visuals.draw_goose(windowSurface, b)
+        # Draw the banner and the texts above the game.
+        pygame.draw.rect(windowSurface, (10, 35, 38), (0, 0, WINDOWWIDTH, CEILING))
+
+        pygame.draw.line(windowSurface, (25, 60, 60), (0, CEILING), (WINDOWWIDTH, CEILING), 2)
+        drawText(f'Distance : {score} m', font, windowSurface, 10, 0)
+        drawText(f'Record : {topScore} m', font, windowSurface, 10, 40)
+
         pygame.display.update()
 
-        # Check if any of the baddies have hit the player.
-        if playerHasHitBaddie(playerRect, visuals.mask, baddies):
-            if score > topScore:
-                topScore = score # set new top score
+        # 8. End the game if the player has collided with an obstacle. Actualize the top score if necessary.
+        if collision:
+            topScore = max(topScore, score)
             break
 
+        # Limit the number of frames per second.
         mainClock.tick(FPS)
 
     # Stop the music and play the game-over sound.

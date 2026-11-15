@@ -145,15 +145,15 @@ class Visuals:
 
         # Images fixes et dimensions finales.
         files = {
-            'barrel': ('barrel.png', (80, 72)),
-            'mug': ('mug.png', (44, 48)),
-            'rock_floor': ('stalagmite.png', (88, 143)),
-            'rock_ceiling': ('stalactite.png', (88, 143)),
-            'rock_horizontal': ('rock_horizontal.png', (160, 60)),
-            'rock_vertical': ('rock_vertical.png', (52, 138)),
-            'rock_diagonal': ('rock_diagonal.png', (145, 132)),
-            'cannon': ('cannon.png', LAUNCHERS['cannon'][0]),
-            'flame': ('dragon.png', LAUNCHERS['flame'][0]),
+            'barrel': ('wooden_barrel.png', (80, 72)),
+            'mug': ('beer_mug.png', (44, 48)),
+            'rock_floor': ('rock_spike_up.jpg', (88, 143)),
+            'rock_ceiling': ('rock_spike_down.jpg', (88, 143)),
+            'rock_horizontal': ('floating_platform.jpg', (160, 60)),
+            'rock_vertical': ('stone_wall.png', (52, 138)),
+            'rock_diagonal': ('stone_bridge.png', (145, 132)),
+            'cannon': ('bear_launcher.png', LAUNCHERS['cannon'][0]),
+            'flame': ('dragon_head.png', LAUNCHERS['flame'][0]),
         }
 
         # Charger et redimensionner les images fixes.
@@ -203,8 +203,8 @@ class Visuals:
         self.jet_images = {}
 
         for kind, filename in (
-            ('cannon', 'beer_jet.png'),
-            ('flame', 'fire_jet.png'),
+            ('cannon', 'bear_laser.png'),
+            ('flame', 'fire_ball.png'),
         ):
             self.jet_images[kind] = pygame.image.load(
                 str(folder / filename)

@@ -1,7 +1,6 @@
 """3. MONDES — choix aleatoires limites pour garder des passages evitables."""
 # worlds.1 : Préparation du module.
 import random
-from turtle import shape
 from entities import Hazard
 from settings import WIDTH, FLOOR, PORTAL_MIN, PORTAL_MAX, PAIR_DISTANCE, MIN_REACTION_SECONDS, LAUNCHER_MIN_DISTANCE
 from settings import TWO_OBSTACLES_DISTANCE, THREE_OBSTACLES_DISTANCE, OBSTACLE_GAP_MIN, OBSTACLE_GAP_SECONDS
@@ -34,20 +33,20 @@ class Portal:
 # worlds.7 : Define disponibles types of obstacles for each world. Draw a new obstacle adapted to the world and distance.
 def new_hazard(world, distance):
     if world == 'meadow':
-        choices = ['goose', 'goose']     # 'barrel', 'fence',       # list of the disponible obstracles for the meadow world. The repetition of 'goose' increases its probability of appearance.
-#        if distance > 450:
-#            choices += ['red_goose']
+        choices = [ 'barrel', 'fence', 'goose', 'goose']            # List of the disponible obstracles for the meadow world. The repetition of 'goose' increases its probability of appearance.
+        if distance > 450:
+            choices += ['red_goose']
     elif world == 'pub':
-        choices = []   #'barrel', 'mug', 'mug'                      # List of the disponible obstracles for the pub world. The repetition of 'mug' increases its probability of appearance.
-#        if distance >= LAUNCHER_MIN_DISTANCE['pub']:
-#            choices += ['cannon']                                  # Adding the cannon to the list of available obstacles for the pub world, if the distance is greater than or equal to the minimum distance for the launcher in the pub world.
+        choices = ['barrel', 'mug', 'mug']                          # List of the disponible obstracles for the pub world. The repetition of 'mug' increases its probability of appearance.
+        if distance >= LAUNCHER_MIN_DISTANCE['pub']:
+            choices += ['cannon']                                   # Adding the cannon to the list of available obstacles for the pub world, if the distance is greater than or equal to the minimum distance for the launcher in the pub world.
     else:
-        choices = []    #'rock', 'rock', 'bat', 'bat'               # List of the disponible obstracles for the cave world. The repetition of 'rock' and 'bat' increases their probability of appearance.
-#        if distance >= LAUNCHER_MIN_DISTANCE['cave']:
-#            choices += ['flame']                                   # Adding the flame to the list of available obstacles for the cave world, if the distance is greater than or equal to the minimum distance for the launcher in the cave world.
+        choices = ['rock', 'rock', 'bat', 'bat']                    # List of the disponible obstracles for the cave world. The repetition of 'rock' and 'bat' increases their probability of appearance.
+        if distance >= LAUNCHER_MIN_DISTANCE['cave']:
+            choices += ['flame']                                    # Adding the flame to the list of available obstacles for the cave world, if the distance is greater than or equal to the minimum distance for the launcher in the cave world.
     kind = random.choice(choices)                                   # Choose the obstacle's type among those authorized.
     shape = random.choice(('floor', 'ceiling', 'horizontal', 'vertical', 'diagonal'))          # Choose a disposition, used for rocks.
-#   # Choose a reference height according to the world.
+   # Choose a reference height according to the world.
     if world == 'meadow':
         y = random.choice(MEADOW_HEIGHTS)
     elif world == 'pub':
@@ -55,7 +54,7 @@ def new_hazard(world, distance):
     else:
         y = random.choice((200, 285, 365))      
         
-    if kind == 'bat':                           # Replace the height with a value adapted to the bats.
+    if kind == 'bat':                                         # Replace the height with a value adapted to the bats.
         y = random.choice((155, 210, 290, 370))
        
     return Hazard(kind, y, shape, random.randrange(4))        # Create and send the obstacles with a variant between 0 and 3
@@ -90,13 +89,10 @@ def next_hazard(world, distance, hazards, speed, player_x):
 
     # Launchers's specifics checks.
     if candidate.kind in ("cannon", "flame"):
-
         if hazards and not mixed:
             return None                                         # Do not add a launcher if there is already one present, before the threshold.
-
         if len(launchers) >= MAX_LAUNCHERS:
             return None                                         # Do not add a launcher if there are already the maximum number of launchers present.      
-
         # Keep enough space between the two lines of fire.
         available_heights = [
             y for y in (200, 285, 365)
