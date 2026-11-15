@@ -124,5 +124,3 @@ def next_hazard(world, distance, hazards, speed, player_x):
             return None                                                         # Return None if the new obstacle is too close to the last one, to keep a passage in the middle of the screen.
 
     return candidate
-
-
