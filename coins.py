@@ -32,15 +32,15 @@ class CoinSpawner:
         return COINS_PER_WAVE * SPACING
 
     def _zone_is_free(self, baddies, kind):
-        """True if no goose is in the spawn area, sized for the chosen pattern."""
+        """True if no Hazard overlaps the spawn area for the chosen pattern."""
         zone = pygame.Rect(WINDOWWIDTH, 0, self._width(kind) + 100, WINDOWHEIGHT)
-        return not any(zone.colliderect(b['rect']) for b in baddies)
+        return not any(zone.colliderect(b.rect) for b in baddies)
 
     def _add_coin(self, x, y):
         """Creates one coin centered on (x, y)."""
         rect = pygame.Rect(0, 0, 2 * RADIUS, 2 * RADIUS)
         rect.center = (int(x), int(y))
-        self.coins.append({'rect': rect})
+        self.coins.append({'rect': rect, 'x': float(x)})
 
     def _spawn_wave(self):
         """Wavy row of coins, just outside the screen on the right."""
@@ -77,7 +77,7 @@ class CoinSpawner:
     def update(self, player_rect, speed, baddies, blocked=False, dt=1 / FPS):
         """
         Advances one frame: spawn, move, pickup, cleanup.
-        `speed` is in px/frame, the same as the geese.
+        `speed` is in pixels/second; baddies contains Hazard objects.
         `blocked` is True when no new coins may appear (portal incoming or transition).
         Returns the number of coins collected during this frame.
         """
