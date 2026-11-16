@@ -55,6 +55,9 @@ class GameStrip:
         # Échelle uniforme (le pixel art n'est pas déformé) : le corps en bois
         # descend jusqu'à HUD_BOTTOM, le chapeau reste à HUD_TOP_MARGIN du haut.
         self.scale = (HUD_BOTTOM - HUD_TOP_MARGIN) / BODY_BOTTOM
+        # Les coordonnées SLOTS sont mesurées sur la référence 2145 x 231.
+        # L'image jointe est plus petite : normaliser l'échelle de référence.
+        self.scale = min(self.scale, (WINDOWWIDTH - 12) / 2145)
         size = (round(sw * self.scale), round(sh * self.scale))
         self.image = pygame.transform.smoothscale(source, size)
 
@@ -64,6 +67,7 @@ class GameStrip:
 
         # Cases converties en rectangles écran.
         self.slots = {name: self._to_screen(box) for name, box in SLOTS.items()}
+        self.pause_rect = self._to_screen((2025, 77, 2135, 190))
 
         # État du trèfle et du chaudron : géré ici pour ne pas toucher au main.
         # Les autres modules font simplement hud.clover = CLOVER_FOUND, hud.pot += 1...

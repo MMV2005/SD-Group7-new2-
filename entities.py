@@ -7,6 +7,7 @@ from settings import (
     WINDOWWIDTH, CEILING, FLOOR,
     BARREL_GRAVITY, BARREL_BOUNCES,
     LAUNCHERS, JET_WARNING, JET_END, JET_HEIGHT,
+    LASER_SCROLL_SPEED, LASER_TILE_GAP, MUG_SPIN_SPEED,
 )
 # entities.1 : Représenter tous les obstacles du jeu.
 class Hazard:
@@ -49,6 +50,8 @@ class Hazard:
         self.age = 0.0
         self.vy = 0.0
         self.finished = False
+        self.spin = random.choice((-1, 1)) * MUG_SPIN_SPEED
+        self.jet_tile = None
 
         # Paramètres particuliers des tonneaux.
         self.bounce_speed = random.choice(BARREL_BOUNCES)
@@ -111,24 +114,29 @@ class Hazard:
             self.kind in ('cannon', 'flame')
             and JET_WARNING <= self.age < JET_END
         )
-
+    
     # entities.7 : Préparer le jet après le choix définitif de la hauteur.
     def prepare_jet(self):
+        """Redimensionner un motif à hauteur fixe, sans modifier ses proportions."""
+        source = self.jet_images[self.kind]
+        bounds = source.get_bounding_rect(min_alpha=20)
+        if bounds.width and bounds.height:
+            source = source.subsurface(bounds)
+        tile_width = max(1, round(source.get_width() * JET_HEIGHT / source.get_height()))
+        self.jet_tile = pygame.transform.scale(source, (tile_width, JET_HEIGHT))
         mouth_x, mouth_y = self.muzzle
+        self.jet_surface = pygame.Surface((max(1, mouth_x), JET_HEIGHT), pygame.SRCALPHA)
+        self.jet_rect = self.jet_surface.get_rect(midright=(mouth_x, mouth_y))
+        self.refresh_jet()
 
-        # Le jet va du bord gauche jusqu’à la bouche.
-        width = max(1, mouth_x)
-
-        self.jet_surface = pygame.transform.scale(
-            self.jet_images[self.kind],
-            (width, JET_HEIGHT)
-        )
-
+    def refresh_jet(self):
+        """Répéter le motif en le faisant défiler ; le masque suit les pixels dessinés."""
+        self.jet_surface.fill((0, 0, 0, 0))
+        step = self.jet_tile.get_width() + max(0, LASER_TILE_GAP)
+        phase = int(max(0.0, self.age - JET_WARNING) * LASER_SCROLL_SPEED) % step
+        for x in range(-phase, self.jet_surface.get_width(), step):
+            self.jet_surface.blit(self.jet_tile, (x, 0))
         self.jet_mask = pygame.mask.from_surface(self.jet_surface)
-
-        self.jet_rect = self.jet_surface.get_rect(
-            midright=(mouth_x, mouth_y)
-        )
 
     # entities.8 : Faire évoluer les mouvements et les animations.
     def update(self, dt, speed, player_rect):
@@ -153,6 +161,8 @@ class Hazard:
 
         # Les lanceurs restent fixes pendant l’avertissement et le tir.
         if self.kind in ('cannon', 'flame'):
+            if self.firing:
+                self.refresh_jet()
             self.finished = self.age >= JET_END
             self.sync_rect()
             return
@@ -200,6 +210,10 @@ class Hazard:
 
         self.image = self.frames[index]
         self.mask = self.masks[index]
+        if self.kind == 'mug':
+            # Toujours repartir de l'image source : aucune dégradation cumulée.
+            self.image = pygame.transform.rotate(self.frames[index], self.age * self.spin)
+            self.mask = pygame.mask.from_surface(self.image)
 
         self.sync_rect()
 

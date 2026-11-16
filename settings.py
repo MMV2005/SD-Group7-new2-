@@ -90,3 +90,7 @@ MEADOW_HEIGHTS = (130, 130, 200, 285, 365)          # Hauteur des obstacles dans
 PUB_HEIGHTS = (130, 130, 200, 285, 365)             # Hauteur des obstacles dans le monde pub par probabilité (répéter 130 augmente la probabilité d'apparition : 20% ici, et pour (130, 130, 200, 285, 365) : 40%, 20%, 20%, 20% respectivement)
 
 TEXTCOLOR = (255, 255, 255)
+# settings.12 : Défilement des motifs de laser et rotation des chopes.
+LASER_SCROLL_SPEED = 650.0   # Pixels/seconde, vers la gauche.
+LASER_TILE_GAP = 0          # 0 : motifs contigus ; > 0 : espaces transparents.
+MUG_SPIN_SPEED = 210.0      # Degrés/seconde (0 pour désactiver la rotation).

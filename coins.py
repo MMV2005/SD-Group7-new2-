@@ -74,7 +74,7 @@ class CoinSpawner:
         else:
             self._spawn_wave()
 
-    def update(self, player_rect, speed, baddies, blocked=False):
+    def update(self, player_rect, speed, baddies, blocked=False, dt=1 / FPS):
         """
         Advances one frame: spawn, move, pickup, cleanup.
         `speed` is in px/frame, the same as the geese.
@@ -83,7 +83,7 @@ class CoinSpawner:
         """
         # --- Spawn (frozen while a portal is pending, like the geese) ---
         if not blocked:
-            self.timer -= 1
+            self.timer -= dt * FPS
             if self.timer <= 0:
                 if self._zone_is_free(baddies, self.next_kind):
                     self._spawn(self.next_kind)
@@ -98,7 +98,8 @@ class CoinSpawner:
         # --- Move, pickup, leave the screen (always, even while blocked) ---
         collected = 0
         for coin in self.coins[:]:
-            coin['rect'].move_ip(-speed, 0)
+            coin['x'] -= speed * dt
+            coin['rect'].centerx = round(coin['x'])
             if coin['rect'].colliderect(player_rect):
                 self.coins.remove(coin)
                 collected += 1
