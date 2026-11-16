@@ -59,15 +59,12 @@ Hazard.configure(
     visuals.obstacle_masks,
     visuals.jet_images)
 
+
 topScore = 0
 last_score = None
 sound_enabled = True
-gravity = JetpackPhysics()
-topScore = 0
-last_score = None
-sound_enabled = True
-gravity = JetpackPhysics()
 open_main_menu = True
+gravity = JetpackPhysics()
 coins = CoinSpawner()
 coin_count = 0
 
@@ -84,12 +81,10 @@ while True:
     # Apply the selected sound setting.
     pygame.mixer.music.set_volume(1.0 if sound_enabled else 0.0)
     gameOverSound.set_volume(1.0 if sound_enabled else 0.0)
-
+    
     # Stop any remaining game-over sound before starting.
     gameOverSound.stop()
-
-    # Set up the start of the game.
-    baddies = []
+    
     # main.1 : Réinitialiser la partie et le monde.
     hazards = []
     world = 'meadow'
@@ -141,7 +136,7 @@ while True:
                 if event.key == K_SPACE:
                     thrusting = False
 
-                # main.3 : Faire avancer une transition en cours.
+        # main.3 : Faire avancer une transition en cours.
         if transition is not None:
 
             # Changer le monde lorsque le nuage couvre l'écran.
@@ -267,7 +262,7 @@ while True:
                     if obstacle.collides_with(playerRect, visuals.mask):
                         collision = True
                         break
-                # main.10 : Dessiner le fond du monde actuel.
+        # main.10 : Dessiner le fond du monde actuel.
         visuals.draw_background(windowSurface, world)
 
         # Dessiner les obstacles et le personnage.
@@ -328,9 +323,15 @@ while True:
         # Limit the number of frames per second.
         mainClock.tick(FPS)
 
-        # Stop the music and play the game-over sound.
+    # Stop the music and play the game-over sound.
     pygame.mixer.music.stop()
     gameOverSound.play()
+
+    drawText('GAME OVER', font, windowSurface, (WINDOWWIDTH / 3), (WINDOWHEIGHT / 3))
+    drawText('Press a key to play again.', font, windowSurface, (WINDOWWIDTH / 3) - 80, (WINDOWHEIGHT / 3) + 50)
+    pygame.display.update()
+    waitForPlayerToPressKey()
+
 
     # Save the latest score and update the session record.
     last_score = score
