@@ -6,7 +6,7 @@ from settings import *
 
 class CoinSpawner:
     """Spawns patterns of coins from the right side, handles pickup and drawing."""
-    PATTERNS = ('wave', 'circle')
+    PATTERNS = ('wave', 'circle', 'cross', 'zigzag')  # available patterns of coins
 
     def __init__(self):
         self.coins = []                  # list of {'rect': pygame.Rect}
@@ -29,6 +29,10 @@ class CoinSpawner:
         """Horizontal size of a pattern in pixels (used to check the spawn area)."""
         if kind == 'circle':
             return 2 * CIRCLE_R + 2 * RADIUS
+        if kind == 'cross':
+            return 2 * CROSS_UNIT + 2 * RADIUS
+        if kind == 'zigzag':
+            return COINS_PER_ZIGZAG * SPACING
         return COINS_PER_WAVE * SPACING
 
     def _zone_is_free(self, baddies, kind):
@@ -45,12 +49,12 @@ class CoinSpawner:
     def _spawn_wave(self):
         """Wavy row of coins, just outside the screen on the right."""
         # Keep the whole row (wave included) between the ceiling and the floor
-        margin = AMPLITUDE + RADIUS
+        margin = WAVE_AMPLITUDE + RADIUS
         y = random.randint(CEILING + margin, FLOOR - margin)
 
         for i in range(COINS_PER_WAVE):
             x = WINDOWWIDTH + 30 + i * SPACING
-            wave = AMPLITUDE * math.sin(i * 0.7)
+            wave = WAVE_AMPLITUDE * math.sin(i * 0.7)
             self._add_coin(x, y + wave)
 
     def _spawn_circle(self):
@@ -67,10 +71,40 @@ class CoinSpawner:
             y = cy + CIRCLE_R * math.sin(angle)
             self._add_coin(x, y)
 
+    def _spawn_cross(self):
+        """Cross of 5 coins (center + 4 arms), just outside the screen on the right."""
+        # Center: the leftmost coin starts 30 px after the right border
+        cx = WINDOWWIDTH + 30 + CROSS_UNIT + RADIUS
+        # Keep the whole cross between the ceiling and the floor
+        margin = CROSS_UNIT + RADIUS
+        cy = random.randint(CEILING + margin, FLOOR - margin)
+
+        # Offsets (dx, dy) of the 5 coins relative to the center, in grid units
+        for dx, dy in ((0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)):
+            self._add_coin(cx + dx * CROSS_UNIT, cy + dy * CROSS_UNIT)
+
+    def _spawn_zigzag(self):
+        """Zigzag row of coins, just outside the screen on the right."""
+    # Keep all coins between the ceiling and the floor
+        margin = ZIGZAG_AMPLITUDE + RADIUS
+        y = random.randint(CEILING + margin, FLOOR - margin)
+
+        for i in range(COINS_PER_ZIGZAG):
+            x = WINDOWWIDTH + 30 + i * SPACING
+
+            # Alternate between upper and lower positions
+            offset = ZIGZAG_AMPLITUDE if i % 2 == 0 else -ZIGZAG_AMPLITUDE
+
+            self._add_coin(x, y + offset)
+
     def _spawn(self, kind):
         """Calls the right generator for the chosen pattern."""
         if kind == 'circle':
             self._spawn_circle()
+        elif kind == 'cross':
+            self._spawn_cross()
+        elif kind == 'zigzag':
+            self._spawn_zigzag()
         else:
             self._spawn_wave()
 

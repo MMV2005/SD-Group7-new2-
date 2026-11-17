@@ -32,9 +32,12 @@ COIN_INTERVAL = (3.4, 4.8)                 # Délai aléatoire entre deux groupe
 COINS_PER_WAVE = 5                        # Nombre de pièces dans la vague.
 RADIUS = 12          # half the size of a coin, in pixels (sprite and hitbox)
 SPACING = 43         # horizontal gap between two coins in a wave (px)
-AMPLITUDE = 24       # vertical amplitude of the wave (px)
+WAVE_AMPLITUDE = 24       # vertical amplitude of the wave (px)
 CIRCLE_R = 50        # radius of the circle of coins (px)
 CIRCLE_N = 8        # number of coins in the circle
+CROSS_UNIT = 36      # distance between the center coin and each arm coin for the cross shape (px)
+ZIGZAG_AMPLITUDE = 15  # vertical amplitude of the zigzag (px)
+COINS_PER_ZIGZAG = 7   # number of coins in the zigzag pattern
 
 
 ITEM_INTERVAL = (10.0, 15.0)               # Délai aléatoire entre deux objets (en secondes).
