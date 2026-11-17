@@ -98,9 +98,12 @@ class Hazard:
                 )
             )
         else:
-            self.rect = self.image.get_rect(
-                center=(round(self.x), round(self.y))
-            )
+            self.rect = self.image.get_rect(center=(round(self.x), round(self.y)))
+            if (self.kind == 'fence' or (self.kind == 'rock'and self.shape == 'floor')):
+                self.rect.bottom = FLOOR
+
+            elif (self.kind == 'rock' and self.shape == 'ceiling'):
+                self.rect.top = CEILING
 
     # entities.5 : Donner la position de la bouche du lanceur.
     @property

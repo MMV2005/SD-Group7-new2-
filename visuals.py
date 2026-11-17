@@ -157,6 +157,47 @@ class Visuals:
         index = int(baddie['age'] * GOOSE_FPS) % 2
         screen.blit(self.goose_frames[index], baddie['rect'])
 
+        # visuals : Retirer les marges et conserver les proportions.
+    @staticmethod
+    def load_trimmed_frames(paths, target, axis='height'):
+        sources = []
+
+        for path in paths:
+            # Préférer le nouveau PNG au JPG de même nom.
+            png = path.with_suffix('.png')
+            path = png if png.exists() else path
+
+            image = pygame.image.load(str(path)).convert_alpha()
+
+            bounds = image.get_bounding_rect(min_alpha=20)
+
+            if not bounds.width or not bounds.height:
+                raise ValueError(f"Image vide : {path}")
+
+            sources.append(image.subsurface(bounds).copy())
+
+        # Une même échelle pour toutes les poses.
+        width = max(image.get_width() for image in sources)
+        height = max(image.get_height() for image in sources)
+
+        ratio = target / (width if axis == 'width' else height)
+
+        canvas_size = (max(1, round(width * ratio)), max(1, round(height * ratio)))
+
+        frames = []
+
+        for source in sources:
+            size = (max(1, round(source.get_width() * ratio)), max(1, round(source.get_height() * ratio)))
+
+            image = pygame.transform.scale(source, size)
+
+            canvas = pygame.Surface(canvas_size, pygame.SRCALPHA)
+
+            canvas.blit(image, image.get_rect(center=(canvas_size[0] // 2, canvas_size[1] // 2)))
+
+            frames.append(canvas)
+
+        return frames
     # Charger les images et les masques des obstacles.
     def load_obstacles(self):
         folder = ASSETS / 'obstacles'
@@ -178,14 +219,22 @@ class Visuals:
             'flame': (shooters_folder / 'dragon_head.png', LAUNCHERS['flame'][0]),
         }
 
-        # Charger et redimensionner les images fixes.
+                # Recadrer les obstacles et conserver leurs proportions.
         for key, (image_path, size) in files.items():
-            image = pygame.image.load(
-                str(image_path)
-            ).convert_alpha()
+            if key in ('cannon', 'flame'):
+                # Conserver les repères de bouche des lanceurs.
+                image = pygame.image.load(str(image_path)).convert_alpha()
 
-            image = pygame.transform.scale(image, size)
-            self.obstacle_frames[key] = [image]
+                frames = [pygame.transform.scale(image, size)]
+
+            else:
+                axis = ('width' if key == 'rock_horizontal' else 'height')
+
+                target = (size[0] if axis == 'width' else size[1])
+
+                frames = self.load_trimmed_frames([image_path], target, axis)
+
+            self.obstacle_frames[key] = frames
 
         # Réutiliser les oies normales déjà chargées.
         self.obstacle_frames['goose'] = self.goose_frames
@@ -204,26 +253,21 @@ class Visuals:
             ),
         }
         for kind, (frame_folder, filenames, size) in animated_obstacles.items():
-            frames = []
+            paths = [frame_folder / filename for filename in filenames]
 
-            for filename in filenames:
-                image = pygame.image.load(
-                    str(frame_folder / filename)
-                ).convert_alpha()
+            if kind == 'bat':
+                frames = self.load_trimmed_frames(paths, BAT_WIDTH, axis='width')
 
-                image = pygame.transform.scale(image, size)
-                frames.append(image)
+            else:
+                frames = self.load_trimmed_frames(paths, size[1], axis='height')
 
             self.obstacle_frames[kind] = frames
 
         # Charger les quatre variantes de barrières.
         for variant, size in enumerate(FENCE_SIZES):
-            image = pygame.image.load(
-                str(folder / f'fence_{variant}.png')
-            ).convert_alpha()
+            path = folder / f'fence_{variant}.png'
 
-            image = pygame.transform.scale(image, size)
-            self.obstacle_frames[f'fence_{variant}'] = [image]
+            self.obstacle_frames[f'fence_{variant}'] = (self.load_trimmed_frames( [path], size[1], axis='height'))
 
         # Créer un masque par image, après les redimensionnements.
         for key, frames in self.obstacle_frames.items():

@@ -52,7 +52,7 @@ POT_TIME = 7.0                             # Durée d'activation de la marmite (
 # settings.6 : Dessin des lanceurs : taille et bouche mesuree dans chaque sprite.
 LAUNCHERS = {'cannon': ((138, 84), (0.09, 0.53)),
              'flame': ((152, 128), (0.24, 0.59))}     # Définition des lanceurs : (largeur, hauteur), (position relative de la bouche depuis le coin haut gauche).
-JET_WARNING, JET_END = 1.5, 2.5                       # Durée de l'avertissement et de la fin du jet (en secondes).
+JET_WARNING, JET_END = 1.5, 3.0                       # Durée de l'avertissement et de la fin du jet (en secondes).
 JET_HEIGHT = 24                                       # Hauteur du jet (en pixels).
 
 # settings.7 : Borne une valeur entre deux limites.
@@ -94,6 +94,19 @@ PUB_HEIGHTS = (130, 130, 200, 285, 365)             # Hauteur des obstacles dans
 
 TEXTCOLOR = (255, 255, 255)
 # settings.12 : Défilement des motifs de laser et rotation des chopes.
-LASER_SCROLL_SPEED = 650.0   # Pixels/seconde, vers la gauche.
+LASER_SCROLL_SPEED = 400.0   # Pixels/seconde, vers la gauche.
 LASER_TILE_GAP = 0          # 0 : motifs contigus ; > 0 : espaces transparents.
 MUG_SPIN_SPEED = 210.0      # Degrés/seconde (0 pour désactiver la rotation).
+
+# settings.13 : Chaudrons et cité d'or.
+POT_REQUIRED = 2
+POT_FILE = ASSETS / 'bonus' / 'pot_of_gold.jpg'
+POT_SIZE = (52, 52)
+POT_SPAWN_INTERVAL = (1.0, 3.0)
+
+GOLD_SPEED = 360.0
+GOLD_COIN_INTERVAL = (0.7, 1.0)
+GOLD_COIN_VALUE = 1
+
+# Largeur maximale des chauves-souris.
+BAT_WIDTH = 100
