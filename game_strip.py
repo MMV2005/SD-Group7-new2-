@@ -8,7 +8,9 @@ limite haute du joueur, il se cogne donc la tête contre la bande. Les petits
 trèfles qui dépassent sous la bande passent par-dessus le décor.
 """
 import pygame
-from settings import WINDOWWIDTH, CEILING, ASSETS
+from settings import WINDOWWIDTH, WINDOWHEIGHT, CEILING, ASSETS
+from transitions import RAINBOW
+from sprite_assets import load_image
 
 # --- game_strip.1 : image et placement -------------------------------------
 HUD_FILE = ASSETS / 'game strip' / 'barre_hud.png'     # bande avec fond transparent
@@ -45,7 +47,7 @@ def format_number(n):
 
 class GameStrip:
     def __init__(self):
-        source = pygame.image.load(str(HUD_FILE)).convert_alpha()
+        source = load_image(str(HUD_FILE)).convert_alpha()
         # Recadrage automatique : enlève la marge transparente autour de la bande.
         # Sans ça, une image avec de la marge (2172 x 724 par ex.) serait dessinée
         # trop bas. Fonctionne avec l'image d'origine ou la version déjà recadrée.
@@ -72,6 +74,17 @@ class GameStrip:
         # État du trèfle et du chaudron : géré ici pour ne pas toucher au main.
         # Les autres modules font simplement hud.clover = CLOVER_FOUND, hud.pot += 1...
         self.reset()
+
+        # game_strip.4 : Préparer une jauge arc-en-ciel, sans texte.
+        self.gold_rect = pygame.Rect(20, WINDOWHEIGHT - 22, WINDOWWIDTH - 40, 12)
+        self.gold_bar = pygame.Surface(self.gold_rect.size)
+        for x in range(self.gold_rect.width):
+            position = x / max(1, self.gold_rect.width - 1) * (len(RAINBOW) - 1)
+            index = min(int(position), len(RAINBOW) - 2)
+            fraction = position - index
+            color = tuple(round(a + (b - a) * fraction)
+                          for a, b in zip(RAINBOW[index], RAINBOW[index + 1]))
+            pygame.draw.line(self.gold_bar, color, (x, 0), (x, self.gold_rect.height - 1))
 
         # Police proportionnelle à la hauteur d'une case.
         self.font_size = round(self.slots['pieces'].height * 0.8)
@@ -146,3 +159,13 @@ class GameStrip:
         self._draw_text(screen, CLOVER_TEXT[self.clover], self.slots['trefle'], CLOVER_COLOR[self.clover])
         self._draw_text(screen, f'{self.pot}/{self.pot_max}', self.slots['chaudron'])
         self._draw_text(screen, format_number(record), self.slots['record'])
+
+    # game_strip.5 : Diminuer la largeur visible selon le temps encore disponible.
+    def draw_gold_timer(self, screen, remaining, total):
+        fraction = max(0.0, min(1.0, remaining / total)) if total > 0 else 0.0
+        pygame.draw.rect(screen, (35, 23, 45), self.gold_rect)
+        width = round(self.gold_rect.width * fraction)
+        if width > 0:
+            screen.blit(self.gold_bar, self.gold_rect.topleft,
+                        pygame.Rect(0, 0, width, self.gold_rect.height))
+        pygame.draw.rect(screen, (255, 225, 145), self.gold_rect.inflate(4, 4), 2)

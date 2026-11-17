@@ -5,7 +5,8 @@ import pygame
 
 from settings import (
     WINDOWWIDTH, CEILING, FLOOR,
-    BARREL_GRAVITY, BARREL_BOUNCES,
+    BARREL_GRAVITY, BARREL_SPEED_RANGE, BARREL_JUMP_RANGE,
+    LAUNCHER_HOLD_SECONDS, LAUNCHER_FADE_SECONDS,
     LAUNCHERS, JET_WARNING, JET_END, JET_HEIGHT,
     LASER_SCROLL_SPEED, LASER_TILE_GAP, MUG_SPIN_SPEED,
 )
@@ -54,7 +55,8 @@ class Hazard:
         self.jet_tile = None
 
         # Paramètres particuliers des tonneaux.
-        self.bounce_speed = random.choice(BARREL_BOUNCES)
+        self.bounce_speed = random.uniform(*BARREL_JUMP_RANGE)
+        self.speed_factor = random.uniform(*BARREL_SPEED_RANGE) if kind == 'barrel' else 1.0
 
         # État du jet des lanceurs.
         self.jet_surface = None
@@ -81,7 +83,9 @@ class Hazard:
 
         # Les lanceurs apparaissent directement à droite.
         if kind in ('cannon', 'flame'):
-            self.x = WINDOWWIDTH - 75.0
+            # Garder le lanceur élargi entièrement dans la fenêtre.
+            anchor_x = LAUNCHERS[kind][1][0]
+            self.x = WINDOWWIDTH - 12 - self.image.get_width() * (1 - anchor_x) + 50
 
         self.sync_rect()
 
@@ -113,11 +117,19 @@ class Hazard:
     # entities.6 : Indiquer si le jet est actuellement dangereux.
     @property
     def firing(self):
-        return (
-            self.kind in ('cannon', 'flame')
-            and JET_WARNING <= self.age < JET_END
-        )
+        return (self.kind in ('cannon', 'flame') and JET_WARNING <= self.age < JET_END)
     
+    # entities.6b : Opacité du lanceur après la fin de son tir.
+    @property
+    def opacity(self):
+        elapsed = self.age - JET_END - LAUNCHER_HOLD_SECONDS
+        if elapsed <= 0:
+            return 255
+        if LAUNCHER_FADE_SECONDS <= 0:
+            return 0
+        return round(255 * max(0.0, 1.0 - elapsed / LAUNCHER_FADE_SECONDS))
+
+
     # entities.7 : Préparer le jet après le choix définitif de la hauteur.
     def prepare_jet(self):
         """Redimensionner un motif à hauteur fixe, sans modifier ses proportions."""
@@ -166,12 +178,12 @@ class Hazard:
         if self.kind in ('cannon', 'flame'):
             if self.firing:
                 self.refresh_jet()
-            self.finished = self.age >= JET_END
+            self.finished = self.age >= JET_END + LAUNCHER_HOLD_SECONDS + LAUNCHER_FADE_SECONDS
             self.sync_rect()
             return
 
         # Déplacement commun des autres obstacles.
-        self.x -= speed * dt
+        self.x -= speed * self.speed_factor * dt
 
         if self.kind == 'barrel':
             self.vy += BARREL_GRAVITY * dt
@@ -181,6 +193,7 @@ class Hazard:
 
             if self.y >= ground_y:
                 self.y = ground_y
+                self.bounce_speed = random.uniform(*BARREL_JUMP_RANGE)
                 self.vy = -self.bounce_speed
 
         elif self.kind == 'red_goose':
@@ -237,10 +250,7 @@ class Hazard:
         if not player_rect.colliderect(obstacle_rect):
             return False
 
-        offset = (
-            obstacle_rect.left - player_rect.left,
-            obstacle_rect.top - player_rect.top
-        )
+        offset = (obstacle_rect.left - player_rect.left, obstacle_rect.top - player_rect.top)
 
         return player_mask.overlap(obstacle_mask, offset) is not None
 

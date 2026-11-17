@@ -2,7 +2,7 @@ import math
 import random
 import pygame
 from settings import *
-
+from sprite_assets import load_image
 
 class CoinSpawner:
     """Spawns patterns of coins from the right side, handles pickup and drawing."""
@@ -14,7 +14,7 @@ class CoinSpawner:
         self.next_kind = random.choice(self.PATTERNS)   # pattern that will spawn next
 
         # Load the sprite once (PNG with transparent background)
-        image = pygame.image.load(ASSETS / 'bonus' / 'gold_coin.png').convert_alpha()
+        image = load_image(ASSETS / 'bonus' / 'gold_coin.png').convert_alpha()
         # Resize the sprite to the size of the hitbox
         self.image = pygame.transform.smoothscale(
             image, (2 * RADIUS, 2 * RADIUS))

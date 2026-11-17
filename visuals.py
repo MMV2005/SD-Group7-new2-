@@ -3,6 +3,7 @@ import pygame, math, random
 from settings import *
 from reglages_personnages import *
 from transitions import draw_fog
+from sprite_assets import load_frames, load_image
 
 PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
 
@@ -21,7 +22,7 @@ PORTAL_SIZE = (210, 425)              # taille du portail à l'écran
 class Visuals:
     def __init__(self):
         self.frames = [
-            pygame.image.load(str(PLAYER_FRAMES_FOLDER / f'vol_{i}.png')).convert_alpha()
+            load_image(str(PLAYER_FRAMES_FOLDER / f'vol_{i}.png')).convert_alpha()
             for i in range(3)]
         
         self.masks = [pygame.mask.from_surface(frame) for frame in self.frames]
@@ -35,13 +36,13 @@ class Visuals:
         self.backgrounds = {name: self.load_background(name) for name in BACKGROUND_HORIZONS}
 
         # --- AJOUT : image du portail, chargée une seule fois ---
-        portal = pygame.image.load(str(PORTAL_FILE)).convert_alpha()
+        portal = load_image(str(PORTAL_FILE)).convert_alpha()
         portal = portal.subsurface(portal.get_bounding_rect(min_alpha=20))   # enlève les bords transparents
         self.portal_image = pygame.transform.scale(portal, PORTAL_SIZE)
 
 
         self.goose_frames = [
-            pygame.image.load(str(GOOSE_FRAMES_FOLDER / f'goose_{i}.png')).convert_alpha()
+            load_image(str(GOOSE_FRAMES_FOLDER / f'goose_{i}.png')).convert_alpha()
             for i in range(2)]
         # Un seul masque fixe (les ailes qui battent ne modifient pas la hitbox)
         self.goose_mask = pygame.mask.from_surface(self.goose_frames[0])
@@ -71,7 +72,7 @@ class Visuals:
     @staticmethod
     def load_background(world):
         """Load the image once, then align its ground line on FLOOR."""
-        source = pygame.image.load(str(BACKGROUND_FOLDER / f'bg_{world}.png')).convert()
+        source = load_image(str(BACKGROUND_FOLDER / f'bg_{world}.png')).convert()
         w, h = source.get_size()
         horizon = BACKGROUND_HORIZONS[world]
 
@@ -89,12 +90,11 @@ class Visuals:
         """Draw the background of the given world. Must be called BEFORE anything else each frame."""
         screen.blit(self.backgrounds[world], (0, 0))
 
-    # --- AJOUT : portail ---
+    # visuals.5 : Portails des mondes normaux uniquement.
     def draw_portal(self, screen, portal_x):
-        """Draw the fog cloud trailing the portal, then the portal itself."""
         draw_fog(screen, portal_x - 20)
-        screen.blit(self.portal_image, self.portal_image.get_rect(center=(round(portal_x + 26), 282)))
-
+        screen.blit(self.portal_image, self.portal_image.get_rect(
+            center=(round(portal_x + 26), 282)))
 
 
     def reset_jet(self):
@@ -150,54 +150,13 @@ class Visuals:
         self.draw_jet(screen)                  # d'abord les pièces : elles passent derrière le sprite
         screen.blit(self.image, player_rect)
     
-    #Visuals.14 
+     #Visuals.14 
     def get_goose_rect(self, center_x, center_y): #Return a rect for a new goose centered on (center_x, center_y).
         return self.goose_frames[0].get_rect(center=(center_x, center_y))
     def draw_goose(self, screen, baddie): #Draw goose_0 or goose_1 depending on the goose's age (GOOSE_FPS = 6).
         index = int(baddie['age'] * GOOSE_FPS) % 2
         screen.blit(self.goose_frames[index], baddie['rect'])
 
-        # visuals : Retirer les marges et conserver les proportions.
-    @staticmethod
-    def load_trimmed_frames(paths, target, axis='height'):
-        sources = []
-
-        for path in paths:
-            # Préférer le nouveau PNG au JPG de même nom.
-            png = path.with_suffix('.png')
-            path = png if png.exists() else path
-
-            image = pygame.image.load(str(path)).convert_alpha()
-
-            bounds = image.get_bounding_rect(min_alpha=20)
-
-            if not bounds.width or not bounds.height:
-                raise ValueError(f"Image vide : {path}")
-
-            sources.append(image.subsurface(bounds).copy())
-
-        # Une même échelle pour toutes les poses.
-        width = max(image.get_width() for image in sources)
-        height = max(image.get_height() for image in sources)
-
-        ratio = target / (width if axis == 'width' else height)
-
-        canvas_size = (max(1, round(width * ratio)), max(1, round(height * ratio)))
-
-        frames = []
-
-        for source in sources:
-            size = (max(1, round(source.get_width() * ratio)), max(1, round(source.get_height() * ratio)))
-
-            image = pygame.transform.scale(source, size)
-
-            canvas = pygame.Surface(canvas_size, pygame.SRCALPHA)
-
-            canvas.blit(image, image.get_rect(center=(canvas_size[0] // 2, canvas_size[1] // 2)))
-
-            frames.append(canvas)
-
-        return frames
     # Charger les images et les masques des obstacles.
     def load_obstacles(self):
         folder = ASSETS / 'obstacles'
@@ -206,68 +165,32 @@ class Visuals:
         self.obstacle_frames = {}
         self.obstacle_masks = {}
 
-        # Images fixes et dimensions finales.
-        files = {
-            'barrel': (folder / 'wooden_barrel.png', (80, 72)),
-            'mug': (ASSETS / 'bonus' / 'beer_mug.png', (44, 48)),
-            'rock_floor': (folder / 'rock_spike_up.png', (88, 143)),
-            'rock_ceiling': (folder / 'rock_spike_down.png', (88, 143)),
-            'rock_horizontal': (folder / 'floating_platform.png', (160, 60)),
-            'rock_vertical': (folder / 'stone_wall.png', (52, 138)),
-            'rock_diagonal': (folder / 'stone_bridge.png', (145, 132)),
-            'cannon': (shooters_folder / 'bear_launcher.png', LAUNCHERS['cannon'][0]),
-            'flame': (shooters_folder / 'dragon_head.png', LAUNCHERS['flame'][0]),
+        # visuals.15 : Tous les chemins ici ; toutes les dimensions dans settings.15.
+        paths = {
+            'barrel': [folder / 'wooden_barrel.png'],
+            'mug': [ASSETS / 'bonus' / 'beer_mug.png'],
+            'rock_floor': [folder / 'rock_spike_up.png'],
+            'rock_ceiling': [folder / 'rock_spike_down.png'],
+            'rock_horizontal': [folder / 'floating_platform.png'],
+            'rock_vertical': [folder / 'stone_wall.png'],
+            'rock_diagonal': [folder / 'stone_bridge.png'],
+            'cannon': [shooters_folder / 'bear_launcher.png'],
+            'flame': [shooters_folder / 'dragon_head.png'],
         }
-
-                # Recadrer les obstacles et conserver leurs proportions.
-        for key, (image_path, size) in files.items():
-            if key in ('cannon', 'flame'):
-                # Conserver les repères de bouche des lanceurs.
-                image = pygame.image.load(str(image_path)).convert_alpha()
-
-                frames = [pygame.transform.scale(image, size)]
-
-            else:
-                axis = ('width' if key == 'rock_horizontal' else 'height')
-
-                target = (size[0] if axis == 'width' else size[1])
-
-                frames = self.load_trimmed_frames([image_path], target, axis)
-
-            self.obstacle_frames[key] = frames
-
-        # Réutiliser les oies normales déjà chargées.
-        self.obstacle_frames['goose'] = self.goose_frames
-
-        # Charger les deux poses de l’oie rouge et de la chauve-souris.
-        animated_obstacles = {
-            'red_goose': (
-                GOOSE_FRAMES_FOLDER,
-                ('red_goose_0.png', 'red_goose_1.png'),
-                (98, 88),
-            ),
-            'bat': (
-                ASSETS / 'bats',
-                ('bat_1.png', 'bat_2.png'),
-                (96, 70),
-            ),
-        }
-        for kind, (frame_folder, filenames, size) in animated_obstacles.items():
-            paths = [frame_folder / filename for filename in filenames]
-
-            if kind == 'bat':
-                frames = self.load_trimmed_frames(paths, BAT_WIDTH, axis='width')
-
-            else:
-                frames = self.load_trimmed_frames(paths, size[1], axis='height')
-
-            self.obstacle_frames[kind] = frames
-
-        # Charger les quatre variantes de barrières.
-        for variant, size in enumerate(FENCE_SIZES):
-            path = folder / f'fence_{variant}.png'
-
-            self.obstacle_frames[f'fence_{variant}'] = (self.load_trimmed_frames( [path], size[1], axis='height'))
+        paths.update({
+            'goose': [GOOSE_FRAMES_FOLDER / f'goose_{i}.png' for i in range(2)],
+            'red_goose': [GOOSE_FRAMES_FOLDER / f'red_goose_{i}.png' for i in range(2)],
+            'bat': [ASSETS / 'bats' / f'bat_{i}.png' for i in (1, 2)],})
+        
+        paths.update({f'fence_{i}': [folder / f'fence_{i}.png']
+                      for i in range(len(FENCE_SIZES))})
+        for key, filenames in paths.items():
+            self.obstacle_frames[key] = load_frames(
+                filenames, OBSTACLE_SIZES[key], trim=key not in LAUNCHERS
+            )
+        # Les lanceurs gardent leur cadre source pour conserver la bouche calibrée.
+        self.goose_frames = self.obstacle_frames['goose']
+        self.goose_mask = pygame.mask.from_surface(self.goose_frames[0])
 
         # Créer un masque par image, après les redimensionnements.
         for key, frames in self.obstacle_frames.items():
@@ -276,14 +199,14 @@ class Visuals:
                 for image in frames
             ]
 
-        # Les jets seront redimensionnés à leur longueur lors de la création.
+        # Entities répète ces motifs à hauteur fixe et anime leur défilement.
         self.jet_images = {}
 
         for kind, filename in (
             ('cannon', 'bear_laser.png'),
             ('flame', 'fire_ball.png'),
         ):
-            self.jet_images[kind] = pygame.image.load(
+            self.jet_images[kind] = load_image(
                 str(shooters_folder / filename)
             ).convert_alpha()
         
@@ -317,6 +240,12 @@ class Visuals:
                 )
 
         # Dessiner le lanceur par-dessus l’extrémité de son jet.
-        screen.blit(obstacle.image, obstacle.rect)
+        # visuals.16 : Fondu après le tir, sans modifier la ressource partagée.
+        if obstacle.kind in LAUNCHERS and obstacle.age >= JET_END:
+            image = obstacle.image.copy()
+            image.set_alpha(obstacle.opacity)
+            screen.blit(image, obstacle.rect)
+        else:
+            screen.blit(obstacle.image, obstacle.rect)
 
     
