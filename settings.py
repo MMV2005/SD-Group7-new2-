@@ -33,8 +33,8 @@ COINS_PER_WAVE = 5                        # Nombre de pièces dans la vague.
 RADIUS = 12          # half the size of a coin, in pixels (sprite and hitbox)
 SPACING = 43         # horizontal gap between two coins in a wave (px)
 AMPLITUDE = 24       # vertical amplitude of the wave (px)
-CIRCLE_R = 70        # radius of the circle of coins (px)
-CIRCLE_N = 12        # number of coins in the circle
+CIRCLE_R = 50        # radius of the circle of coins (px)
+CIRCLE_N = 8        # number of coins in the circle
 
 
 ITEM_INTERVAL = (10.0, 15.0)               # Délai aléatoire entre deux objets (en secondes).
