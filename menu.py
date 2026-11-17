@@ -2,6 +2,7 @@ import pygame
 from pathlib import Path
 from collections import deque
 from functools import lru_cache
+from sprite_assets import resolve_image_path
 
 MENU_ASSETS_DIR = Path(__file__).resolve().parent / "assets" / "menu"
 
@@ -9,17 +10,7 @@ MENU_ASSETS_DIR = Path(__file__).resolve().parent / "assets" / "menu"
 def load_image(name, size, remove_black=False):
     """Load an image and resize it without stretching it."""
 
-    path = next(
-        (MENU_ASSETS_DIR / (name + extension)
-         for extension in (".png", ".jpg", ".jpeg")
-         if (MENU_ASSETS_DIR / (name + extension)).exists()),
-        None
-    )
-
-    if path is None:
-        raise FileNotFoundError(
-            f"Missing image in {MENU_ASSETS_DIR}: {name}"
-        )
+    path = resolve_image_path(MENU_ASSETS_DIR / (name + '.png'))
 
     image = pygame.image.load(str(path)).convert_alpha()
 

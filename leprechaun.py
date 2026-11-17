@@ -6,9 +6,10 @@ import pygame, random, sys
 from game_strip import GameStrip
 from pygame.locals import *
 from coins import CoinSpawner
+from bonus import BonusSpawner
 from menu import show_menu
 from game_over import show_game_over
-from settings import*
+from settings import *
 from gravity import JetpackPhysics
 from visuals import Visuals
 from entities import *
@@ -53,6 +54,7 @@ def main():
     open_main_menu = True
     gravity = JetpackPhysics()
     coins = CoinSpawner()
+    bonuses = BonusSpawner()
     coin_count = 0
     wallet = 0  # Total des pièces collectées pendant cette session.
 
@@ -82,7 +84,7 @@ def main():
         speed = START_SPEED
 
         # Délais avant les obstacles.
-        danger_timer = 1.5
+        danger_timer = 1.0
         safe_timer = 0.0
 
         # Position et mouvement du personnage.
@@ -95,6 +97,12 @@ def main():
         coins.reset()
         coin_count = 0
         hud.reset()
+        hud.pot_max = POT_REQUIRED
+
+        bonuses.reset()
+
+        gold_remaining = 0.0
+        gold_return_world = 'meadow'
 
         # Préparation des portails.
         next_portal = next_gate(distance)
@@ -162,20 +170,31 @@ def main():
                     safe_timer = SAFE_SECONDS
                     danger_timer = 0.0
 
-                    next_portal = next_gate(distance)
-
+                    bonuses.clear()
+                    if world == 'gold':
+                        bonuses.consume_pots()
+                        hud.pot = 0
+                        gold_remaining = GOLD_SECONDS
+                        coins.timer = 0
+                        next_portal = float('inf')
+                    else:
+                        next_portal = next_gate(distance)
+            
             # main.4 : Faire avancer le jeu seulement hors transition.
             else:
                 safe_timer = max(0.0, safe_timer - dt)
 
-                # Augmenter progressivement la vitesse.
-                speed = min(
-                    MAX_SPEED,
-                    START_SPEED + distance * SPEED_PER_METER
-                )
+                if world == 'gold':
+                    speed = GOLD_SPEED
 
-                distance += speed * dt * METERS_PER_PIXEL
-                score = int(distance)
+                else:
+                    speed = min(
+                        MAX_SPEED,
+                        START_SPEED + distance * SPEED_PER_METER
+                    )
+
+                    distance += speed * dt * METERS_PER_PIXEL
+                    score = int(distance)
 
                 # Animation et mouvement du personnage.
                 visuals.update_pose()
@@ -197,13 +216,37 @@ def main():
                     if not obstacle.offscreen()
                 ]
 
-                # main.6 : Déterminer si un portail doit arriver.
-                gate_pending = distance >= next_portal
+                # main.6 : Bonus génériques et transition arc-en-ciel immédiate.
+                bonuses.update(
+                    playerRect, visuals.mask, speed, hazards, dt, world,
+                    blocked=(portal_x is not None
+                             or (world != 'gold' and distance >= next_portal))
+                )
+                hud.pot = bonuses.pots
+                hud.clover = bonuses.clover_state
 
-                # Attendre la sortie des obstacles avant de créer le portail.
-                if gate_pending and portal_x is None and not hazards:
-                    portal_x = WINDOWWIDTH + 140
-                    portal_destination = other_world(world)
+                if world == 'gold':
+                    gold_remaining = max(0.0, gold_remaining - dt)
+                    gate_pending = gold_remaining <= 0
+                    if gate_pending:
+                        transition = Transition.rainbow(gold_return_world)
+                        hazards.clear()
+                        coins.reset()
+                        bonuses.clear()
+                elif bonuses.ready:
+                    gold_return_world = world
+                    transition = Transition.rainbow('gold')
+                    portal_x = None
+                    portal_destination = None
+                    hazards.clear()
+                    coins.reset()
+                    bonuses.clear()
+                    gate_pending = True
+                else:
+                    gate_pending = distance >= next_portal
+                    if gate_pending and portal_x is None and not hazards:
+                        portal_x = WINDOWWIDTH + 140
+                        portal_destination = other_world(world)
 
                 # main.7 : Déplacer le portail vers la gauche.
                 if portal_x is not None:
@@ -220,10 +263,12 @@ def main():
                         # La transition dessine désormais le portail.
                         portal_x = None
                         coins.reset()
+                        bonuses.clear()
 
                 # main.8 : Autoriser ou bloquer les nouveaux obstacles.
                 can_spawn = (
-                    not gate_pending
+                    world != 'gold'
+                    and not gate_pending
                     and portal_x is None
                     and transition is None
                     and safe_timer <= 0
@@ -265,25 +310,28 @@ def main():
 
                         else:
                             # Réessayer si aucun obstacle n'était autorisé.
-                            danger_timer = 0.15
+                            danger_timer = 0.10
 
                 # main.9 : Vérifier les collisions hors transition et sécurité.
-                if transition is None and safe_timer <= 0:
+                if transition is None and safe_timer <= 0 and not bonuses.invincible:
                     for obstacle in hazards:
                         if obstacle.collides_with(playerRect, visuals.mask):
                             collision = True
                             break
-                # main.9b : Faire avancer et ramasser les pièces hors transition.
+                # main.9b : Fréquence dorée ; multiplication uniquement par un bonus actif.
                 if transition is None:
-                    coin_count += coins.update(
-                        playerRect, speed, hazards,
-                        blocked=gate_pending, dt=dt
+                    in_gold = world == 'gold'
+                    gained = coins.update(
+                        playerRect, speed, hazards, blocked=gate_pending, dt=dt,
+                        interval=GOLD_COIN_INTERVAL if in_gold else COIN_INTERVAL
                     )
+                    coin_count += gained * bonuses.coin_multiplier
 
             # main.10 : Dessiner le fond du monde actuel.
             visuals.draw_background(windowSurface, world)
 
             coins.draw(windowSurface)
+            bonuses.draw(windowSurface)
 
             # Dessiner les obstacles et le personnage.
             for obstacle in hazards:
@@ -304,6 +352,10 @@ def main():
 
             # main.13 : Dessiner la barre en bois en dernier.
             hud.draw(windowSurface, score, coin_count, max(topScore, score))
+
+            # main.13b : Jauge dorée ; le timer est déjà figé pendant la pause.
+            if world == 'gold' and transition is None:
+                hud.draw_gold_timer(windowSurface, gold_remaining, GOLD_SECONDS)
 
             if paused:
                 shade = pygame.Surface((WINDOWWIDTH, WINDOWHEIGHT), pygame.SRCALPHA)

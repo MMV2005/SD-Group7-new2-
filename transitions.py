@@ -4,6 +4,7 @@ from functools import lru_cache
 import math
 import pygame
 from settings import WINDOWWIDTH, WINDOWHEIGHT, TRANSITION_SECONDS, ASSETS
+from sprite_assets import load_image
 
 RAINBOW = [(224, 83, 83), (242, 163, 67), (245, 212, 81),
            (88, 179, 108), (77, 159, 209), (123, 104, 185)]
@@ -11,7 +12,7 @@ RAINBOW = [(224, 83, 83), (242, 163, 67), (245, 212, 81),
 # transitions.2 : Charge et mémorise le rideau de transition.
 @lru_cache(maxsize=2)
 def curtain_texture(name):
-    source = pygame.image.load(str(ASSETS / 'transition' / (name + '.png'))).convert()
+    source = load_image(str(ASSETS / 'transition' / (name + '.png'))).convert()
     small = pygame.transform.scale(source, (WINDOWWIDTH // 2, WINDOWHEIGHT // 2))
     return pygame.transform.scale(small, (WINDOWWIDTH, WINDOWHEIGHT))
 
@@ -26,14 +27,13 @@ def draw_fog(screen, left, right=WINDOWWIDTH, name='fog', offset=None):
     origin = left if offset is None else round(offset)
     origin = origin % WINDOWWIDTH - WINDOWWIDTH
     # Repeter la texture garantit la couverture meme avec un bord gauche negatif.
-    if name == 'rainbow' and not (left == 0 and right == WINDOWWIDTH):
-        # Bord ondule en petits paliers : une vague, pas un rectangle colore.
+    if name == 'rainbow':
+        # Une seule image à l'écran : pas de raccord visible entre deux répétitions.
         for y in range(0, WINDOWHEIGHT, 6):
             edge = left + (round(26 * math.sin(y / 55)) if left != 0 else 0)
             end = right + (round(20 * math.sin(y / 70)) if right < WINDOWWIDTH else 0)
             screen.set_clip(pygame.Rect(edge, y, max(0, end - edge), 6).clip(clip))
-            for x in range(origin, end + WINDOWWIDTH, WINDOWWIDTH):
-                screen.blit(texture, (x, 0))
+            screen.blit(texture, (0, 0))
     else:
         for x in range(origin, right, WINDOWWIDTH):
             screen.blit(texture, (x, 0))
@@ -47,6 +47,12 @@ class Transition:
         self.elapsed, self.switched = 0.0, False
         self.start_x = WINDOWWIDTH if start_x is None else start_x
         self.portal_start = portal_x
+
+    # transitions.5b : Rideau immédiat sans portail pour entrer/sortir de la cité.
+    @classmethod
+    def rainbow(cls, destination):
+        return cls(destination, style='gold', start_x=WINDOWWIDTH, portal_x=None)
+
 
     # transitions.6 : Calcule une progression de zéro à un.
     @property

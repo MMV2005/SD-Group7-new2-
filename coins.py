@@ -2,7 +2,7 @@ import math
 import random
 import pygame
 from settings import *
-
+from sprite_assets import load_image
 
 class CoinSpawner:
     """Spawns patterns of coins from the right side, handles pickup and drawing."""
@@ -14,7 +14,7 @@ class CoinSpawner:
         self.next_kind = random.choice(self.PATTERNS)   # pattern that will spawn next
 
         # Load the sprite once (PNG with transparent background)
-        image = pygame.image.load(ASSETS / 'bonus' / 'gold_coin.png').convert_alpha()
+        image = load_image(ASSETS / 'bonus' / 'gold_coin.png').convert_alpha()
         # Resize the sprite to the size of the hitbox
         self.image = pygame.transform.smoothscale(
             image, (2 * RADIUS, 2 * RADIUS))
@@ -108,7 +108,7 @@ class CoinSpawner:
         else:
             self._spawn_wave()
 
-    def update(self, player_rect, speed, baddies, blocked=False, dt=1 / FPS):
+    def update(self, player_rect, speed, baddies, blocked=False, dt=1 / FPS, interval=COIN_INTERVAL):
         """
         Advances one frame: spawn, move, pickup, cleanup.
         `speed` is in pixels/second; baddies contains Hazard objects.
@@ -124,8 +124,7 @@ class CoinSpawner:
                     # Choose the next pattern now, so the zone check uses the right size
                     self.next_kind = random.choice(self.PATTERNS)
                     # COIN_INTERVAL is in seconds, convert it to frames
-                    self.timer = random.randint(int(COIN_INTERVAL[0] * FPS),
-                                                int(COIN_INTERVAL[1] * FPS))
+                    self.timer = random.randint(int(interval[0] * FPS), int(interval[1] * FPS))
                 else:
                     self.timer = 10          # area occupied: try again in 10 frames
 
