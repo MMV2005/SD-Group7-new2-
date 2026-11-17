@@ -167,11 +167,11 @@ class Visuals:
 
         # Images fixes et dimensions finales.
         files = {
-            'barrel': (folder / 'wooden_barrel_detoure.png', (80, 72)),
+            'barrel': (folder / 'wooden_barrel.png', (80, 72)),
             'mug': (ASSETS / 'bonus' / 'beer_mug.png', (44, 48)),
-            'rock_floor': (folder / 'rock_spike_up_detoure.png', (88, 143)),
-            'rock_ceiling': (folder / 'rock_spike_down_detoure.png', (88, 143)),
-            'rock_horizontal': (folder / 'floating_platform_detoure.png', (160, 60)),
+            'rock_floor': (folder / 'rock_spike_up.png', (88, 143)),
+            'rock_ceiling': (folder / 'rock_spike_down.png', (88, 143)),
+            'rock_horizontal': (folder / 'floating_platform.png', (160, 60)),
             'rock_vertical': (folder / 'stone_wall.png', (52, 138)),
             'rock_diagonal': (folder / 'stone_bridge.png', (145, 132)),
             'cannon': (shooters_folder / 'bear_launcher.png', LAUNCHERS['cannon'][0]),
@@ -199,7 +199,7 @@ class Visuals:
             ),
             'bat': (
                 ASSETS / 'bats',
-                ('bat_1.jpg', 'bat_2.jpg'),
+                ('bat_1.png', 'bat_2.png'),
                 (96, 70),
             ),
         }
