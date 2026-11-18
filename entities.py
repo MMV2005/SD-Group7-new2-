@@ -200,7 +200,7 @@ class Hazard:
             # L’oie arrête de poursuivre après avoir dépassé le joueur.
             if self.x > player_rect.centerx:
                 difference = player_rect.centery - self.y
-                maximum_move = 70 * dt
+                maximum_move = 100 * dt
 
                 self.y += max(
                     -maximum_move,
