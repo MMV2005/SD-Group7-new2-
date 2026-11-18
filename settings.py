@@ -29,7 +29,7 @@ GOLD_SECONDS = 10.0                        # Durée de la zone de bonus dans le 
 # settings.5 : Recompenses et objets.
 #coins 
 COIN_INTERVAL = (3.4, 4.8)                 # Délai aléatoire entre deux groupes de pièces (en secondes).
-COINS_PER_WAVE = 5                        # Nombre de pièces dans la vague.
+COINS_PER_WAVE = 5                       # Nombre de pièces dans la vague.
 RADIUS = 12          # half the size of a coin, in pixels (sprite and hitbox)
 SPACING = 43         # horizontal gap between two coins in a wave (px)
 WAVE_AMPLITUDE = 24       # vertical amplitude of the wave (px)

@@ -13,11 +13,8 @@ class CoinSpawner:
         self.timer = FPS                 # frames before the first pattern (1 second)
         self.next_kind = random.choice(self.PATTERNS)   # pattern that will spawn next
 
-        # Load the sprite once (PNG with transparent background)
-        image = load_image(ASSETS / 'bonus' / 'gold_coin.png').convert_alpha()
-        # Resize the sprite to the size of the hitbox
-        self.image = pygame.transform.smoothscale(
-            image, (2 * RADIUS, 2 * RADIUS))
+        image = load_image(ASSETS / 'bonus' / 'gold_coin.png').convert_alpha() # Load the sprite once (PNG with transparent background)
+        self.image = pygame.transform.smoothscale(image, (2 * RADIUS, 2 * RADIUS)) # Resize the sprite to the size of the hitbox
 
     def reset(self):
         """Call at the start of each game."""
