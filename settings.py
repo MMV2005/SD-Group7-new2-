@@ -133,13 +133,13 @@ BONUS_DEFINITIONS = {
     },
     # Exemples prêts à activer après définition/validation des règles et des images.
     'beer': {
-        'enabled': False, 'file': ASSETS / 'bonus' / 'beer_mug.png',
+        'enabled': True, 'file': ASSETS / 'bonus' / 'beer_mug.png',
         'size': (44, 48), 'interval': (12.0, 18.0),
-        'worlds': ('meadow', 'pub', 'cave', 'gold'),
+        'worlds': ('pub'),
         'effect': 'coin_multiplier', 'duration': GUINNESS_TIME, 'value': 2,
     },
     'clover': {
-        'enabled': False, 'file': ASSETS / 'bonus' / 'clover.png',
+        'enabled': True, 'file': ASSETS / 'bonus' / 'clover.png',
         'size': (44, 44), 'interval': (15.0, 22.0),
         'worlds': ('meadow', 'pub', 'cave'),
         'effect': 'shield', 'duration': CLOVER_TIME,
