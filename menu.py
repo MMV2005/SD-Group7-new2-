@@ -4,68 +4,85 @@ from collections import deque
 from functools import lru_cache
 from sprite_assets import resolve_image_path
 
-MENU_ASSETS_DIR = Path(__file__).resolve().parent / "assets" / "menu"
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+MENU_ASSETS_DIR = ASSETS_DIR / "menu"
+FONTS_DIR = ASSETS_DIR / "fonts"
+
+def crop_transparent_margins(image):
+    bounds = image.get_bounding_rect()
+    if bounds.width and bounds.height:
+        return image.subsurface(bounds).copy()
+    return image
+
+
+def scale_image(image, factor):
+    width = max(1, round(image.get_width() * factor))
+    height = max(1, round(image.get_height() * factor))
+    return pygame.transform.scale(image, (width, height))
+
+
+def remove_outer_black_background(image):
+    # Limit the number of pixels to examine.
+    factor = min(1, 800 / max(image.get_size()))
+    image = scale_image(image, factor)
+    width, height = image.get_size()
+
+    # Start from all four edges of the image.
+    pixels = deque()
+    for x in range(width):
+        pixels.append((x, 0))
+        pixels.append((x, height - 1))
+    for y in range(height):
+        pixels.append((0, y))
+        pixels.append((width - 1, y))
+
+    visited = set()
+    while pixels:
+        x, y = pixels.popleft()
+        if not (0 <= x < width and 0 <= y < height):
+            continue
+        if (x, y) in visited:
+            continue
+        visited.add((x, y))
+
+        red, green, blue, alpha = image.get_at((x, y))
+        if alpha == 0 or max(red, green, blue) <= 18:
+            image.set_at((x, y), (0, 0, 0, 0))
+            pixels.extend((
+                (x - 1, y),
+                (x + 1, y),
+                (x, y - 1),
+                (x, y + 1),
+            ))
+
+    return crop_transparent_margins(image)
+
 
 @lru_cache(maxsize=32)
 def load_image(name, size, remove_black=False):
-    """Load an image and resize it without stretching it."""
-
-    path = resolve_image_path(MENU_ASSETS_DIR / (name + '.png'))
-
+    """Load an image and fit it inside the requested area."""
+    path = resolve_image_path(MENU_ASSETS_DIR / f"{name}.png")
     image = pygame.image.load(str(path)).convert_alpha()
-
-    # Crop transparent margins before resizing the image.
-    bounds = image.get_bounding_rect()
-    if bounds.width and bounds.height:
-        image = image.subsurface(bounds).copy()
+    image = crop_transparent_margins(image)
 
     if remove_black:
-        # Reduce large images to speed up background removal.
-        scale_factor = min(1, 800 / max(image.get_size()))
-        image = pygame.transform.scale(image, (
-            max(1, round(image.get_width() * scale_factor)),
-            max(1, round(image.get_height() * scale_factor))
-        ))
+        image = remove_outer_black_background(image)
 
-        # Remove the outer black background without erasing inner details.
-        width, height = image.get_size()
-        pixels = deque(
-            [(x, y) for x in range(width) for y in (0, height - 1)]
-            + [(x, y) for y in range(height) for x in (0, width - 1)]
-        )
-        visited = set()
+    target_width, target_height = size
+    factor = min(
+        target_width / image.get_width(),
+        target_height / image.get_height(),
+    )
+    image = scale_image(image, factor)
 
-        while pixels:
-            x, y = pixels.popleft()
-            if not (0 <= x < width and 0 <= y < height):
-                continue
-            if (x, y) in visited:
-                continue
-            visited.add((x, y))
-
-            red, green, blue, alpha = image.get_at((x, y))
-            if alpha == 0 or max(red, green, blue) <= 18:
-                image.set_at((x, y), (0, 0, 0, 0))
-                pixels.extend(((x - 1, y), (x + 1, y),
-                               (x, y - 1), (x, y + 1)))
-
-        bounds = image.get_bounding_rect()
-        if bounds.width and bounds.height:
-            image = image.subsurface(bounds).copy()
-
-    # Use the same scale factor for both dimensions to avoid distortion.
-    scale_factor = min(size[0] / image.get_width(),
-                       size[1] / image.get_height())
-    image = pygame.transform.scale(image, (
-        max(1, round(image.get_width() * scale_factor)),
-        max(1, round(image.get_height() * scale_factor))
-    ))
-
-    # Center the image within the requested area.
     result = pygame.Surface(size, pygame.SRCALPHA)
-    result.blit(image, image.get_rect(
-        center=(size[0] // 2, size[1] // 2)))
+    result.blit(image, image.get_rect(center=result.get_rect().center))
     return result
+
+
+def draw_text(window, message, center, font):
+    rendered_text = font.render(str(message), True, (255, 245, 220))
+    window.blit(rendered_text, rendered_text.get_rect(center=center))
 
 
 def show_menu(window, high_score=0, last_score=None,
@@ -74,28 +91,12 @@ def show_menu(window, high_score=0, last_score=None,
 
     clock = pygame.time.Clock()
 
-    # Locate the folder containing the font files.
-    fonts_dir = Path(__file__).resolve().parent / "assets" / "fonts"
+    font = pygame.font.Font(str(FONTS_DIR / "pixelify.ttf"), 22)
+    title_font = pygame.font.Font(str(FONTS_DIR / "press_start.ttf"), 20)
+    button_font = pygame.font.Font(str(FONTS_DIR / "tiny5_duo.ttf"), 24)
+    small_button_font = pygame.font.Font(str(FONTS_DIR / "tiny5_duo.ttf"), 14)
 
-    # Use Pixelify Sans for rules, scores, and the coin counter.
-    font = pygame.font.Font(
-        str(fonts_dir / "pixelify.ttf"), 22
-    )
-
-    # Use Press Start 2P for the game title.
-    title_font = pygame.font.Font(
-        str(fonts_dir / "press_start.ttf"), 20
-    )
-
-    # Use Tiny5 Duo for all buttons.
-    button_font = pygame.font.Font(
-        str(fonts_dir / "tiny5_duo.ttf"), 24
-    )
-    small_button_font = pygame.font.Font(
-        str(fonts_dir / "tiny5_duo.ttf"), 14
-    )
-
-    background = load_image("background", (960, 540), False)
+    background = load_image("background", (960, 540))
     title = load_image("title", (540, 170))
     green_button = load_image("green_button", (350, 54))
     wooden_button = load_image("wooden_button", (350, 54))
@@ -117,11 +118,6 @@ def show_menu(window, high_score=0, last_score=None,
     sound_button_rect = pygame.Rect(20, 490, 180, 38)
     page = "home"
 
-    def draw_text(message, center, text_font=font):
-        rendered_text = text_font.render(
-            str(message), True, (255, 245, 220)
-        )
-        window.blit(rendered_text, rendered_text.get_rect(center=center))
 
     def draw_button(message, rectangle, image):
         window.blit(image, rectangle)
@@ -134,8 +130,8 @@ def show_menu(window, high_score=0, last_score=None,
             else button_font
         )
 
-        draw_text(message, rectangle.center, selected_font)
-
+        draw_text(window, message, rectangle.center, selected_font)
+        
     previous_cursor_visibility = pygame.mouse.get_visible()
     pygame.mouse.set_visible(True)
 
@@ -181,14 +177,14 @@ def show_menu(window, high_score=0, last_score=None,
             window.blit(background, (0, 0))
             window.blit(overlay, (0, 0))
             window.blit(title, (210, 40))
-            draw_text("LEPRECHAUN", (480, 125), title_font)
-            draw_text("ESCAPE", (480, 155), title_font)
+            draw_text(window, "LEPRECHAUN", (480, 125), title_font)
+            draw_text(window, "ESCAPE", (480, 155), title_font)
             # Draw the wooden panel behind the coin counter.
             window.blit(coin_panel, (15, 10))
 
             # Draw the chest icon and coin count over the panel.
             window.blit(chest, (20, 10))
-            draw_text(f"CHEST: {coins}", (160, 37), button_font)
+            draw_text(window, f"CHEST: {coins}", (160, 37), button_font)
 
             if page == "home":
                 for label, rectangle in buttons:
@@ -200,9 +196,10 @@ def show_menu(window, high_score=0, last_score=None,
 
                 if last_score is not None:
                     draw_text(
+                        window,
                         f"LAST SCORE: {last_score}",
                         (window.get_width() // 2, 510),
-                        button_font
+                        button_font,
                     )
 
             else:
@@ -230,7 +227,7 @@ def show_menu(window, high_score=0, last_score=None,
                     ]
 
                 for index, line in enumerate(lines):
-                    draw_text(line, (480, 255 + index * 36))
+                    draw_text(window, line, (480, 255 + index * 36), font)
 
                 draw_button("BACK", back_button_rect, wooden_button)
 

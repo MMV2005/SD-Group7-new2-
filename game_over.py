@@ -1,15 +1,12 @@
 import pygame
-from pathlib import Path
 
-from menu import load_image
-
+from menu import FONTS_DIR, draw_text, load_image    
 
 def show_game_over(window, score, high_score):
     """Display a game-over panel over the frozen game."""
 
     clock = pygame.time.Clock()
-    center_x = window.get_width() // 2
-    center_y = window.get_height() // 2
+    center_x, center_y = window.get_rect().center
 
     # Keep the last game frame behind the panel.
     frozen_game = window.copy()
@@ -31,28 +28,9 @@ def show_game_over(window, score, high_score):
     menu_rect = menu_image.get_rect(
         center=(center_x + 120, center_y + 80)
     )
-
-    # Load the same fonts as the main menu.
-    fonts_dir = Path(__file__).resolve().parent / "assets" / "fonts"
-
-    title_font = pygame.font.Font(
-        str(fonts_dir / "press_start.ttf"), 26
-    )
-    score_font = pygame.font.Font(
-        str(fonts_dir / "pixelify.ttf"), 24
-    )
-    button_font = pygame.font.Font(
-        str(fonts_dir / "tiny5_duo.ttf"), 24
-    )
-
-    def draw_text(message, center, font):
-        rendered_text = font.render(
-            str(message), True, (255, 245, 220)
-        )
-        window.blit(
-            rendered_text,
-            rendered_text.get_rect(center=center)
-        )
+    title_font = pygame.font.Font(str(FONTS_DIR / "press_start.ttf"), 26)
+    score_font = pygame.font.Font(str(FONTS_DIR / "pixelify.ttf"), 24)
+    button_font = pygame.font.Font(str(FONTS_DIR / "tiny5_duo.ttf"), 24)
 
     previous_cursor_visibility = pygame.mouse.get_visible()
     pygame.mouse.set_visible(True)
@@ -70,39 +48,31 @@ def show_game_over(window, score, high_score):
                     if event.key == pygame.K_ESCAPE:
                         return "menu"
 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        if replay_rect.collidepoint(event.pos):
-                            return "replay"
-                        if menu_rect.collidepoint(event.pos):
-                            return "menu"
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if replay_rect.collidepoint(event.pos):
+                        return "replay"
+                    if menu_rect.collidepoint(event.pos):
+                        return "menu"
 
             # Restore the frozen game before drawing the panel.
             window.blit(frozen_game, (0, 0))
             window.blit(overlay, (0, 0))
             window.blit(panel, panel_rect)
 
+            draw_text(window, "GAME OVER", (center_x, center_y - 80), title_font)
+            draw_text(window, f"SCORE: {score}", (center_x, center_y - 20), score_font)
             draw_text(
-                "GAME OVER",
-                (center_x, center_y - 80),
-                title_font
-            )
-            draw_text(
-                f"SCORE: {score}",
-                (center_x, center_y - 20),
-                score_font
-            )
-            draw_text(
+                window,
                 f"HIGH SCORE: {high_score}",
                 (center_x, center_y + 15),
-                score_font
+                score_font,
             )
 
             window.blit(replay_image, replay_rect)
             window.blit(menu_image, menu_rect)
 
-            draw_text("REPLAY", replay_rect.center, button_font)
-            draw_text("MENU", menu_rect.center, button_font)
+            draw_text(window, "REPLAY", replay_rect.center, button_font)
+            draw_text(window, "MENU", menu_rect.center, button_font)
 
             pygame.display.flip()
             clock.tick(60)
