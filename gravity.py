@@ -2,15 +2,15 @@ from settings import CEILING, FLOOR, clamp
 class JetpackPhysics():
 
     def __init__(self, gravity=0.3, thrust=0.5, max_fall_speed=11, max_rise_speed=17):
-        # Paramètres de réglage (pixels par frame, ou par frame au carré)
-        self.gravity = gravity                # accélération vers le bas
-        self.thrust = thrust                  # accélération vers le haut (espace maintenue)
-        self.max_fall_speed = max_fall_speed  # vitesse de chute maximale
-        self.max_rise_speed = max_rise_speed  # vitesse de montée maximale
+        # Tuning parameters (pixels per frame, or per frame squared)
+        self.gravity = gravity                # downward acceleration
+        self.thrust = thrust                  # upward acceleration (while Space is held)
+        self.max_fall_speed = max_fall_speed  # maximum falling speed
+        self.max_rise_speed = max_rise_speed  # maximum rising speed
 
-        # État interne
-        self.y = 0.0         # position verticale exacte du centre du personnage
-        self.velocity = 0.0  # vitesse verticale (négative = vers le haut)
+        # Internal state
+        self.y = 0.0         # exact vertical position of the player's center
+        self.velocity = 0.0  # vertical velocity (negative = upward)
 
     def reset(self, center_y):
         """À appeler au début de chaque partie : repart à l'arrêt à la hauteur donnée."""
@@ -21,19 +21,19 @@ class JetpackPhysics():
         """Avance la physique d'une frame et renvoie la position verticale du centre,
         arrondie en entier (prête à être donnée à un pygame.Rect)."""
 
-        # 1. Accélération selon l'état de la touche espace
+        # 1. Acceleration based on the Space key state
         if thrusting:
             self.velocity -= self.thrust
         else:
             self.velocity += self.gravity
 
-        # 2. Plafonnement de la vitesse avec clamp (settings.7)
+        # 2. Cap the velocity with clamp (settings.7)
         self.velocity = clamp(self.velocity, -self.max_rise_speed, self.max_fall_speed)
-        # 3. Mise à jour de la position exacte (flottante)
+        # 3. Update the exact (floating-point) position
         self.y += self.velocity
 
-        # 4. Blocage à CEILING (90) et FLOOR (475) : self.y est la position du centre,
-        #    donc on garde une demi-hauteur de marge de chaque côté
+        # 4. Clamp to CEILING (90) and FLOOR (475): self.y is the center position,
+        #    so we keep half the sprite height as margin on each side
         half = sprite_height / 2
         if self.y < CEILING + half:
             self.y = CEILING + half
@@ -42,5 +42,5 @@ class JetpackPhysics():
             self.y = FLOOR - half
             self.velocity = 0.0
 
-        # 5. Position entière pour l'affichage et les collisions
+        # 5. Integer position for rendering and collisions
         return round(self.y)
