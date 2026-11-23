@@ -15,6 +15,7 @@ from visuals import Visuals
 from entities import *
 from worlds import next_hazard, next_gate, other_world
 from transitions import Transition
+from audio import Audio
 
 
 def terminate():
@@ -32,9 +33,8 @@ def main():
     # Set up the fonts.
     font = pygame.font.SysFont(None, 48)
 
-    # Set up sounds.
-    gameOverSound = pygame.mixer.Sound(str(ASSETS / 'gameover.wav'))
-    pygame.mixer.music.load(str(ASSETS / 'background.mid'))
+    # Toute la gestion musicale se trouve dans audio.py.
+    audio = Audio()
 
     # Set up images.
     visuals = Visuals()               # loads the 3 frames and their masks
@@ -59,8 +59,11 @@ def main():
     wallet = 0  # Total des pièces collectées pendant cette session.
 
     while True:
-        # Open the main menu at startup or when MENU is selected.
+        # Musique du menu principal (également au retour après Game Over).
         if open_main_menu:
+            audio.stop_game_over()
+            audio.set_enabled(sound_enabled)
+            audio.play("menu")
             sound_enabled = show_menu(
                 windowSurface,
                 high_score=topScore,
@@ -69,12 +72,9 @@ def main():
                 coins=wallet
             )
 
-        # Apply the selected sound setting.
-        pygame.mixer.music.set_volume(1.0 if sound_enabled else 0.0)
-        gameOverSound.set_volume(1.0 if sound_enabled else 0.0)
-        
-        # Stop any remaining game-over sound before starting.
-        gameOverSound.stop()
+        # Appliquer le choix SOUND ON/OFF fait dans le menu.
+        audio.set_enabled(sound_enabled)
+        audio.stop_game_over()
         
         # main.1 : Réinitialiser la partie et le monde.
         hazards = []
@@ -110,7 +110,7 @@ def main():
         portal_destination = None
         transition = None
 
-        pygame.mixer.music.play(-1, 0.0)
+        audio.play(world)
         paused = False
 
         # main.2 : Boucle de la partie.
@@ -131,18 +131,18 @@ def main():
                         paused = not paused
                         thrusting = False
                         if paused:
-                            pygame.mixer.music.pause()
+                            audio.pause()
                         else:
-                            pygame.mixer.music.unpause()
+                            audio.unpause()
 
                 if event.type == KEYDOWN:
                     if event.key == K_p:
                         paused = not paused
                         thrusting = False
                         if paused:
-                            pygame.mixer.music.pause()
+                            audio.pause()
                         else:
-                            pygame.mixer.music.unpause()
+                            audio.unpause()
                     if event.key == K_SPACE and not paused:
                         thrusting = True
 
@@ -161,6 +161,7 @@ def main():
                 # Changer le monde lorsque le nuage couvre l'écran.
                 if transition.update(dt):
                     world = transition.destination
+                    audio.play(world)
 
                 # Terminer la transition et préparer la suite.
                 if transition.done:
@@ -372,9 +373,8 @@ def main():
                 break
 
 
-        # Stop the music and play the game-over sound.
-        pygame.mixer.music.stop()
-        gameOverSound.play()
+        # La musique s’arrête et le son Game Over est joué par audio.py.
+        audio.play_game_over()
 
         # Save the latest score and update the session record.
         last_score = score
@@ -390,4 +390,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 
  
