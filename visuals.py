@@ -81,10 +81,10 @@ class Visuals:
         bottom = source.subsurface((0, horizon, w, h - horizon))
 
         # Stretch each part so the horizon lands exactly on FLOOR.
-        background = pygame.Surface((WINDOWWIDTH, WINDOWHEIGHT))
+        background = pygame.Surface((WINDOWWIDTH, WINDOWHEIGHT), 0, 24)
         background.blit(pygame.transform.scale(top, (WINDOWWIDTH, FLOOR)), (0, 0))
         background.blit(pygame.transform.scale(bottom, (WINDOWWIDTH, WINDOWHEIGHT - FLOOR)), (0, FLOOR))
-        return background
+        return background.convert()
 
     def draw_background(self, screen, world='meadow'):
         """Draw the background of the given world. Must be called BEFORE anything else each frame."""
