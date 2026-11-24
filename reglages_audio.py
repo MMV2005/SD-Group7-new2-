@@ -1,4 +1,3 @@
-
 """Réglages centralisés des musiques et effets sonores."""
 
 from pathlib import Path
@@ -15,8 +14,8 @@ MUSIC_FOLDERS = {
     "gold": "gold_city",
 }
 
-# None = détecte automatiquement le fichier audio du dossier.
-# Si plusieurs musiques existent, indique par exemple "musique.mp3".
+# None = détecte automatiquement la musique présente dans chaque dossier.
+# Si plusieurs fichiers existent, remplacer None par leur nom exact.
 MUSIC_FILES = {
     "menu": None,
     "meadow": None,
@@ -28,7 +27,11 @@ MUSIC_FILES = {
 MUSIC_EXTENSIONS = (".ogg", ".mp3", ".wav", ".mid", ".midi")
 
 MUSIC_VOLUME = 0.7
-GAMEOVER_VOLUME = 1.0
 MUSIC_FADE_IN_MS = 350
+GAMEOVER_VOLUME = 1.0
+PICKUP_VOLUME = 1
+PICKUP_COOLDOWN_MS = 60
 
-GAMEOVER_SOUND = ASSETS_AUDIO / "gameover.wav"
+# Sons ponctuels rangés directement dans assets/.
+GAMEOVER_SOUND = ASSETS_AUDIO / "gameover.mp3"
+PICKUP_SOUND = ASSETS_AUDIO / "pickup.mp3"
