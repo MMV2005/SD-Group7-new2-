@@ -29,3 +29,14 @@ COIN_EDGE = (255, 214, 99)    # contour clair
 # Point d'apparition du jet, relatif au rectangle du joueur
 JET_OFFSET_X = 8              # pixels depuis le bord gauche (arrière du sprite)
 JET_OFFSET_Y = 0.25           # fraction de la hauteur, depuis le centre vers le bas
+
+# reglages_personnages.5 : Animations de vol et de marche.
+# Utilisé pour choisir un skin manuel (la boutique actuelle n'est pas modifiée).
+PLAYER_SKIN = "classic"   # "classic", "gold", "stone", "mcgregor" si disponible
+
+# Taille MAX de la boîte du sprite de marche affiché à l'écran.
+# Les images marche_0/1/2 sont recadrées autour de leurs pixels visibles
+# puis redimensionnées ensemble en gardant leurs proportions.
+WALK_MAX_SIZE = (112, 110)
+WALK_ANIMATION_FPS = 9
+WALK_FRAME_SEQUENCE = (0, 1, 2, 1)

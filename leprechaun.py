@@ -87,7 +87,9 @@ def main():
         danger_timer = 1.0
         safe_timer = 0.0
 
-        # Position et mouvement du personnage.
+        # Position et mouvement : une nouvelle partie commence en vol.
+        visuals.set_player_mode('fly')
+        playerRect = visuals.get_rect()
         playerRect.center = (WINDOWWIDTH / 3 - 100, WINDOWHEIGHT / 2)
         gravity.reset(playerRect.centery)
         thrusting = False
@@ -198,12 +200,29 @@ def main():
                     score = int(distance)
 
                 # Animation et mouvement du personnage.
-                visuals.update_pose()
+                # Depuis le sol : ESPACE déclenche le décollage.
+                # On conserve la position des pieds en changeant de hitbox.
+                if thrusting and visuals.mode == 'walk':
+                    playerRect = visuals.set_player_mode('fly', playerRect)
+                    gravity.reset(playerRect.centery)
+
                 playerRect.centery = gravity.update(
                     thrusting,
                     playerRect.height,
                     WINDOWHEIGHT
                 )
+
+                # À l'atterrissage, la pose debout apparaît seulement quand
+                # les pieds atteignent FLOOR, pas selon un Y arbitraire.
+                if (not thrusting and playerRect.bottom >= FLOOR
+                        and gravity.velocity >= 0):
+                    if visuals.mode != 'walk':
+                        playerRect = visuals.set_player_mode('walk', playerRect)
+                        playerRect.bottom = FLOOR
+                        gravity.reset(playerRect.centery)
+
+                # Le masque change avec la frame avant les collisions.
+                visuals.update_pose()
                 visuals.update_jet(playerRect, thrusting)
 
                 # main.5 : Déplacer les obstacles déjà présents.
