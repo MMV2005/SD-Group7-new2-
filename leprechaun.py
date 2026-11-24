@@ -283,7 +283,6 @@ def main():
                             distance,
                             hazards,
                             speed,
-                            playerRect.centerx
                         )
 
                         if obstacle is not None:

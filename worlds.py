@@ -1,122 +1,117 @@
-"""3. MONDES — choix aleatoires limites pour garder des passages evitables."""
-# worlds.1 : Préparation du module.
+"""World selection and obstacle spawning rules."""
 import random
+
 from entities import Hazard
-from settings import WIDTH, FLOOR, PORTAL_MIN, PORTAL_MAX, PAIR_DISTANCE, MIN_REACTION_SECONDS, LAUNCHER_MIN_DISTANCE
-from settings import TWO_OBSTACLES_DISTANCE, THREE_OBSTACLES_DISTANCE, OBSTACLE_GAP_MIN, OBSTACLE_GAP_SECONDS
-from settings import LAUNCHER_MIX_DISTANCE, MAX_LAUNCHERS, LAUNCHER_VERTICAL_GAP
-from settings import MEADOW_HEIGHTS, PUB_HEIGHTS
+from settings import (WIDTH, PORTAL_MIN, PORTAL_MAX, MEADOW_HEIGHTS, PUB_HEIGHTS, LAUNCHER_MIN_DISTANCE, TWO_OBSTACLES_DISTANCE, 
+                      THREE_OBSTACLES_DISTANCE, OBSTACLE_GAP_MIN, OBSTACLE_GAP_SECONDS, LAUNCHER_MIX_DISTANCE, MAX_LAUNCHERS, LAUNCHER_VERTICAL_GAP)
 
-NAMES = {"meadow": "LES PRAIRIES", "pub": "LE PUB",
-         "cave": "LA GROTTE DU DRAGON", "gold": "LA CITE D'OR"}             # Indexes disponibles worlds, with their names (in capitals) for the title screen.
-NORMAL_WORLDS = ("meadow", "pub", "cave")                                   # Definition of the normal worlds (without the gold one, which is a bonus world).
 
-# worlds.2 : Choose the distance randomly between PORTAL_MIN and PORTAL_MAX, then add it to the current distance to get the next portal's distance.
+# worlds.1 — Display names and destinations available through ordinary portals.
+NAMES = {"meadow": "LES PRAIRIES", "pub": "LE PUB", "cave": "LA GROTTE DU DRAGON", "gold": "LA CITE D'OR"}
+# Ordinary portals choose from these three worlds. Pots unlock the gold world.
+NORMAL_WORLDS = ("meadow", "pub", "cave")
+
+# worlds.2 — Schedule the next portal by adding a random distance in metres.
 def next_gate(distance):
     return distance + random.randint(PORTAL_MIN, PORTAL_MAX)
 
-# worlds.3 : Choose a different world from actual one.
+# Exclude the current world so a portal always changes the scenery.
 def other_world(current):
     return random.choice([world for world in NORMAL_WORLDS if world != current])
 
-# worlds.4 : Representing the mandatory portal : only its X coordinate counts.
+# worlds.3 — Portal position and destination. The current main loop tracks these directly.
 class Portal:
-    # worlds.5 : Creating portal out of the screen and remembering its destination.
     def __init__(self, destination):
-        self.x = float(WIDTH + 140)
+        self.x = float(WIDTH + 140)  # Start the portal 140 pixels beyond the right edge.
         self.destination = destination
 
-    # worlds.6 : Moving portal to the left.
     def update(self, dt, speed):
-        self.x -= speed * dt
+        self.x -= speed * dt  # Convert speed in pixels per second to distance travelled this frame.
 
-# worlds.7 : Define disponibles types of obstacles for each world. Draw a new obstacle adapted to the world and distance.
+# worlds.4 — Draw a candidate. Repeated entries give a type more weight.
 def new_hazard(world, distance):
     if world == 'meadow':
-        choices = [ 'barrel', 'fence', 'goose', 'goose']            # List of the disponible obstracles for the meadow world. The repetition of 'goose' increases its probability of appearance.
-        if distance > 450:
+        # Two goose entries out of four give the ordinary goose a 50% chance initially.
+        choices = ['barrel', 'fence', 'goose', 'goose']
+        if distance > 450:  # Add the chasing goose only after the player passes 450 metres.
             choices += ['red_goose']
     elif world == 'pub':
-        choices = ['barrel', 'mug', 'mug']                          # List of the disponible obstracles for the pub world. The repetition of 'mug' increases its probability of appearance.
+        choices = ['barrel', 'mug', 'mug']  # Two mug entries make a mug twice as likely to be drawn as a barrel.
         if distance >= LAUNCHER_MIN_DISTANCE['pub']:
-            choices += ['cannon']                                   # Adding the cannon to the list of available obstacles for the pub world, if the distance is greater than or equal to the minimum distance for the launcher in the pub world.
+            choices += ['cannon']  # Include the pub's cannon once its distance requirement is met.
     else:
-        choices = ['rock', 'rock', 'bat', 'bat']                    # List of the disponible obstracles for the cave world. The repetition of 'rock' and 'bat' increases their probability of appearance.
+        choices = ['rock', 'rock', 'bat', 'bat']
         if distance >= LAUNCHER_MIN_DISTANCE['cave']:
-            choices += ['flame']                                    # Adding the flame to the list of available obstacles for the cave world, if the distance is greater than or equal to the minimum distance for the launcher in the cave world.
-    kind = random.choice(choices)                                   # Choose the obstacle's type among those authorized.
-    shape = random.choice(('floor', 'ceiling', 'horizontal', 'vertical', 'diagonal'))          # Choose a disposition, used for rocks.
-   # Choose a reference height according to the world.
+            choices += ['flame']  # Include the cave's flame launcher once its distance requirement is met.
+    kind = random.choice(choices)
+    # Choose how a rock is placed if the obstacle drawn is a rock.
+    shape = random.choice(('floor', 'ceiling', 'horizontal', 'vertical', 'diagonal'))
     if world == 'meadow':
         y = random.choice(MEADOW_HEIGHTS)
     elif world == 'pub':
         y = random.choice(PUB_HEIGHTS)
     else:
-        y = random.choice((200, 285, 365))      
-        
-    if kind == 'bat':                                         # Replace the height with a value adapted to the bats.
+        y = random.choice((200, 285, 365))
+
+    # Bats have their own set of starting heights.
+    if kind == 'bat':
         y = random.choice((155, 210, 290, 370))
-       
-    return Hazard(kind, y, shape, random.randrange(4))        # Create and send the obstacles with a variant between 0 and 3
+
+    return Hazard(kind, y, shape, random.randrange(4))  # Create the candidate. Fence variants are numbered 0 to 3.
 
 
-# worlds.8 : Limit the combinations of obstacles to keep a passage in the middle of the screen.
-# Generates up to three obstacles and combine the launchers after the threshold. The function returns None if no new obstacle can be added, or a new obstacle if it can be added.
-def next_hazard(world, distance, hazards, speed, player_x):
+# worlds.5 — Return an allowed candidate, or None so the main loop can retry.
+def next_hazard(world, distance, hazards, speed):
+    """Keep player_x in the public signature used by the main loop."""
+    if world == "gold":  # Keep the bonus world free of hazards.
+        return None
 
-    if world == "gold":
-        return None                                                                     # The gold world has no obstacles.
-
+    # Launchers must appear alone until the mixing threshold is reached.
     mixed = distance >= LAUNCHER_MIX_DISTANCE
-    launchers = [h for h in hazards if h.kind in ("cannon", "flame")]                   # Combine launchers only after the threshold, and keep a minimum distance between their axes of fire.
+    launchers = [h for h in hazards if h.kind in ("cannon", "flame")]
 
-    # Before the threshold, do not add anything when a launcher is present.
     if launchers and not mixed:
         return None
 
-    # Progessive limit: one, two, then three obstacles.
+    # Limit the total number of active hazards as distance increases.
     if distance < TWO_OBSTACLES_DISTANCE:
         maximum = 1
     elif distance < THREE_OBSTACLES_DISTANCE:
-        maximum = 2
+        maximum = 2  # Allow up to two active hazards from 2,000 m until 3,500 m.
     else:
         maximum = 3
 
-    if len(hazards) >= maximum:
+    if len(hazards) >= maximum:  # Wait for an active hazard to leave before adding another.
         return None
 
     candidate = new_hazard(world, distance)
 
-    # Launchers's specifics checks.
     if candidate.kind in ("cannon", "flame"):
-        if hazards and not mixed:
-            return None                                         # Do not add a launcher if there is already one present, before the threshold.
+        if hazards and not mixed:  # An incoming launcher needs an empty screen before 7,000 m.
+            return None
         if len(launchers) >= MAX_LAUNCHERS:
-            return None                                         # Do not add a launcher if there are already the maximum number of launchers present.      
-        # Keep enough space between the two lines of fire.
-        available_heights = [
-            y for y in (200, 285, 365)
-            if all(
-                abs(y - launcher.y) >= LAUNCHER_VERTICAL_GAP
-                for launcher in launchers
-            )
-        ]                                                       # Calculate the available heights for the new launcher, keeping enough space between the two lines of fire.
+            return None
+        # A firing line must clear every active launcher by the configured vertical gap.
+        available_heights = [y for y in (200, 285, 365) if all(abs(y - launcher.y) >= LAUNCHER_VERTICAL_GAP for launcher in launchers)]
 
-        if not available_heights:
-            return None                                         # Return None if there is no available height for the new launcher.
+        if not available_heights:  # Skip this spawn when every firing line would be too close to an existing one.
+            return None
 
-        candidate.y = random.choice(available_heights)          # Choose a random available height for the new launcher in the available heights.
-        candidate.base_y = candidate.y                          # Set the base_y of the new launcher to its y coordinate, to keep it fixed at that height.
-        return candidate                                        # Return the new launcher if it can be added.
+        candidate.y = random.choice(available_heights)
+        candidate.base_y = candidate.y  # Store the accepted firing height as the launcher's reference height.
+        return candidate
 
-    # Spacing the moving obstacles, without counting the fixed launchers.
+    # Fixed launchers are excluded from the horizontal gap check.
     moving = [h for h in hazards if h.kind not in ("cannon", "flame")]
 
     if moving:
+        # Measure from the rightmost moving obstacle to the new spawn position.
         last = max(moving, key=lambda h: h.x)
-        minimum_gap = max(OBSTACLE_GAP_MIN, speed * OBSTACLE_GAP_SECONDS)       # The minimum gap is calculated based on the speed or a fixed value, depending on the highest.
+        # Use the larger of a fixed pixel gap and a speed-dependent gap.
+        minimum_gap = max(OBSTACLE_GAP_MIN, speed * OBSTACLE_GAP_SECONDS)
 
+        # Reject the candidate if its spawn point is too close to the rightmost moving hazard.
         if WIDTH + 80 - last.x < minimum_gap:
-            return None                                                         # Return None if the new obstacle is too close to the last one, to keep a passage in the middle of the screen.
+            return None
 
     return candidate
