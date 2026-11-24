@@ -328,6 +328,10 @@ def main():
                     )
                     coin_count += gained * bonuses.coin_multiplier
 
+                    # Son lors de la récupération des pièces.
+                    if gained > 0:
+                        audio.play_pickup()
+
             # main.10 : Dessiner le fond du monde actuel.
             visuals.draw_background(windowSurface, world)
 
@@ -390,5 +394,3 @@ def main():
 
 if __name__ == "__main__":
     main()
- 
- 
