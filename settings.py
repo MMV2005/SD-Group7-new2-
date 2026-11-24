@@ -1,118 +1,86 @@
-# settings.1 : Préparation du module.
+"""Shared configuration for the game. Distances use metres; screen coordinates use pixels."""
 from pathlib import Path
-from reglages_personnages import *
 
-# settings.2 : Fenetre et limites jouables.
-WINDOWWIDTH, WINDOWHEIGHT, FPS = 960, 540, 60           # Taille de la fenetre (largeur et hauteur en pixels) et nombre d'images par seconde (FPS).
-WIDTH, HEIGHT = WINDOWWIDTH, WINDOWHEIGHT
-CEILING, FLOOR = 90, 475                    # Limites jouables (en pixels) : plafond et sol. Le personnage ne peut pas depasser ces limites.
-ROOT = Path(__file__).resolve().parent      # Trouver le dossier contenant ce fichier Python.
-                                        #__file__ : contient le chemin du fichier Python dans lequel cette ligne est écrite. Ici, elle désigne settings.py.
-                                        #Path(__file__) : transforme ce chemin en un objet Path, sur lequel on peut utiliser des opérations liées aux fichiers.
-                                        #.resolve() : obtient le chemin absolu (c’est-à-dire le chemin complet depuis la racine du disque).
-                                        #.parent : récupère le dossier contenant le fichier.
-ASSETS = ROOT / 'assets'                    # Définir le chemin du dossier des ressources du jeu.
-RECORD_FILE = ROOT / 'record.json'          # Définir le chemin du fichier utilisé pour sauvegarder le record.
+from reglages_personnages import *  # Other modules import character settings through this module.
 
+# settings.1 — Locate resources relative to this file.
+# Use the folder containing settings.py, even when the game starts from another directory.
+ROOT = Path(__file__).resolve().parent
+ASSETS = ROOT / 'assets'                        # Join the project folder and the assets folder with the Path / operator.
+# Path reserved for the record file. This assignment alone does not save a score.
+RECORD_FILE = ROOT / 'record.json'
 
-# settings.3 : Paramètres de déplacements (augmentation de vitesse).
-START_SPEED, MAX_SPEED = 300, 580          # Vitesse de départ et vitesse maximale (en pixels par seconde).
-SPEED_PER_METER = 0.045                    # +45 pixels/seconde tous les 1000 metres
-METERS_PER_PIXEL = 0.1                     # Conversion de pixels à metres (1 pixel = 0.1 metre)
+# settings.2 — Window dimensions, target frame rate and playable vertical bounds.
+# Window width and height in pixels, followed by the target frames per second.
+WINDOWWIDTH, WINDOWHEIGHT, FPS = 960, 540, 60
+WIDTH, HEIGHT = WINDOWWIDTH, WINDOWHEIGHT                   # Short names used by modules that read the same window dimensions.
+CEILING, FLOOR = 90, 475                                    # Top and bottom of the playable area. Larger y values are lower on screen.
+TEXTCOLOR = (255, 255, 255)                                 # White text, expressed as red, green and blue values.
 
-# settings.4 : Mondes et transitions.
-PORTAL_MIN, PORTAL_MAX = 600, 700          # Distance minimale et maximale entre deux portails (en metres).
-TRANSITION_SECONDS = 1.6                   # Durée de la transition entre deux mondes (en secondes).
-SAFE_SECONDS = 1.0                         # Durée de la zone de sécurité après un portail (en secondes).
-GOLD_SECONDS = 10.0                        # Durée de la zone de bonus dans le monde cité d'or (en secondes).
+# settings.3 — Horizontal speed (px/s), acceleration per metre and distance conversion.
+START_SPEED, MAX_SPEED = 300, 580                           # Initial and maximum scrolling speeds (px/s).
+SPEED_PER_METER = 0.045                                     # Every 1,000 metres adds 45 px/s until the speed cap is reached.
+METERS_PER_PIXEL = 0.1                                      # Ten pixels of scrolling count as one metre of progress.
 
-# settings.5 : Recompenses et objets.
-#coins 
-COIN_INTERVAL = (3.4, 4.8)                 # Délai aléatoire entre deux groupes de pièces (en secondes).
-COINS_PER_WAVE = 5                       # Nombre de pièces dans la vague.
-RADIUS = 12          # half the size of a coin, in pixels (sprite and hitbox)
-SPACING = 43         # horizontal gap between two coins in a wave (px)
-WAVE_AMPLITUDE = 24       # vertical amplitude of the wave (px)
-CIRCLE_R = 50        # radius of the circle of coins (px)
-CIRCLE_N = 8        # number of coins in the circle
-CROSS_UNIT = 36      # distance between the center coin and each arm coin for the cross shape (px)
-ZIGZAG_AMPLITUDE = 15  # vertical amplitude of the zigzag (px)
-COINS_PER_ZIGZAG = 7   # number of coins in the zigzag pattern
+# settings.4 — Portal spacing (m), transition duration and safe time (s).
+# Random distance added to the current distance for the next ordinary portal (m).
+PORTAL_MIN, PORTAL_MAX = 600, 700
+TRANSITION_SECONDS = 1.6                                    # Duration setting for the world-change animation (s).
+SAFE_SECONDS = 1.0                                          # Grace period after a transition before hazards can spawn or hit the player (s).
 
+# settings.5 — Coin patterns: counts and geometry (px); intervals are in seconds.
+COIN_INTERVAL = (3.4, 4.8)                                  # Range of delays between groups of coins in ordinary worlds (s).
+COINS_PER_WAVE = 5                                          # Number of coins in a wave.
+RADIUS = 12                                                 # Half the width of a coin sprite and its square pickup rectangle (px).
+SPACING = 43                                                # Horizontal distance between neighbouring coin centres in a wave or zigzag (px).
+WAVE_AMPLITUDE = 24                                         # Maximum vertical offset from the centre of the wave (px).
+CIRCLE_R = 50                                               # Distance from the centre of a circular pattern to each coin centre (px).
+CIRCLE_N = 8                                                # Number of coins distributed around the circle.
+CROSS_UNIT = 36                                             # Distance from the centre coin to each arm of the cross (px).
+ZIGZAG_AMPLITUDE = 15                                       # Vertical offset above or below the middle of the zigzag (px).
+COINS_PER_ZIGZAG = 7                                        # Number of coins in a zigzag.
 
-ITEM_INTERVAL = (10.0, 15.0)               # Délai aléatoire entre deux objets (en secondes).
-MAGNET_SECONDS = 6.0                       # Durée d'activation du aimant (en secondes).
-MAGNET_RX, MAGNET_RY, MAGNET_OFFSET = 180, 110, 45  # Rayons horizontal et vertical de l’aimant, puis décalage vers l’avant, en pixels.
-GUINNESS_TIME = 6.0                        # Durée d'activation de la bière (en secondes).
-REVIVE_COSTS = (50, 100)                    # Coût de la réanimation (en pièces d'or) : 1ère et 2ème réanimation.
-CLOVER_TIME = 5.0                          # Durée d'activation du trèfle (en secondes).
-POT_TIME = 7.0                             # Durée d'activation de la marmite (en secondes).
+# settings.6 — Spawn intervals (s), distance thresholds (m) and horizontal spacing.
+OBSTACLE_INTERVAL_START = 1.6                               # Starting interval used to schedule the next obstacle after a successful spawn (s).
+OBSTACLE_INTERVAL_MIN = 0.60                                # Lower limit on that interval as difficulty increases (s).
+DENSITY_MAX_DISTANCE = 3500                                 # Distance at which the base spawn interval reaches its minimum (m).
+TWO_OBSTACLES_DISTANCE = 2000                               # From this distance, two hazards may be active at once (m).
+THREE_OBSTACLES_DISTANCE = 3500                             # From this distance, three hazards may be active at once (m).
+OBSTACLE_GAP_MIN = 260                                      # Minimum horizontal centre-to-centre gap between moving hazards at spawn (px).
+OBSTACLE_GAP_SECONDS = 0.60                                 # Multiply by scroll speed to get the speed-dependent gap (px).
 
+# Repeated heights make those vertical positions more likely when sampled.
+MEADOW_HEIGHTS = (130, 130, 175, 200, 285, 285, 365, 385)
+PUB_HEIGHTS = (130, 130, 130, 165, 200, 240, 285, 285, 365, 375)
 
-# settings.6 : Dessin des lanceurs : taille et bouche mesuree dans chaque sprite.
+# settings.7 — Barrel acceleration (px/s²), scroll multiplier, upward impulse (px/s) and mug spin (deg/s).
+BARREL_GRAVITY = 800                                        # Downward acceleration applied during each barrel bounce (px/s²).
+BARREL_SPEED_RANGE = (0.85, 1.25)                           # A barrel moves at 85% to 125% of the world's scroll speed.
+BARREL_JUMP_RANGE = (220.0, 500.0)                          # Range of upward launch speeds drawn for a barrel bounce (px/s).
+MUG_SPIN_SPEED = 210.0                                      # Rotation speed of a flying mug (degrees/s).
+
+# settings.8 — Launcher sprite bounds and muzzle location as fractions of width and height.
 LAUNCHERS = {'cannon': ((210, 150), (0.09, 0.53)),
-             'flame': ((220, 200), (0.24, 0.59))}     # Définition des lanceurs : (largeur, hauteur), (position relative de la bouche depuis le coin haut gauche).
-JET_WARNING, JET_END = 1.5, 2.5                       # Durée de l'avertissement et de la fin du jet (en secondes).
-JET_HEIGHT = 60                                       # Hauteur du jet (en pixels).
+             'flame': ((220, 200), (0.24, 0.59))}
 
-# settings.7 : Borne une valeur entre deux limites.
-def clamp(number, minimum, maximum):
-    """Limite un nombre a l'intervalle choisi."""
-    return max(minimum, min(maximum, number))
+# The jet is active from JET_WARNING until JET_END, measured from spawn (s).
+JET_WARNING, JET_END = 1.5, 2.5                             # The jet starts firing at age 1.5 s and stops at age 2.5 s.
+JET_HEIGHT = 60                                             # Height of the scaled jet pattern (px).
+LASER_SCROLL_SPEED = 500.0                                  # Speed at which the jet pattern moves to the left (px/s).
+LASER_TILE_GAP = 0                                          # Horizontal space between repeated jet tiles (px). Zero joins them edge to edge.
+LAUNCHER_HOLD_SECONDS = 0.6                                 # Time the launcher stays fully visible after firing (s).
+LAUNCHER_FADE_SECONDS = 0.35                                # Time for the launcher to fade out after the hold period (s).
 
-# settings.8 : Difficulté : fréquence et espace entre obstacles
-OBSTACLE_INTERVAL_START = 1.6                       # Délai initial entre deux obstacles (en secondes). Ce délai diminue progressivement jusqu'à OBSTACLE_INTERVAL_MIN.
-OBSTACLE_INTERVAL_MIN = 0.60                        # Délai minimal entre deux obstacles (en secondes). Ce délai est atteint lorsque la vitesse du jeu est maximale.
-PAIR_DISTANCE = 800                                 # Distance minimal avant d'autoriser les paires d'obstacles (en mètres).
-MIN_REACTION_SECONDS = 0.80                         # Temps minimal de réaction entre obstacles (en secondes). 
-FENCE_SIZES = ((112, 72), (208, 72), (112, 112), (208, 112))        # Différentes tailles de barrière (largeur, hauteur) en pixels. Ces dimensions sont utilisées pour calculer les collisions avec le personnage.
-BARREL_GRAVITY = 800                                # Gravité appliquée aux tonneaux (en pixels/seconde²).
-BARREL_BOUNCES = (220, 480)                         # Vitesse initiale verticale de chaque rebond.
+# Launcher eligibility (m), simultaneous launcher count and firing-line separation (px).
+# First distance at which each world's launcher can be drawn as a candidate (m).
+LAUNCHER_MIN_DISTANCE = {'pub': 0,  'cave': 0}              # Minimum distance for each world to have a launcher
+LAUNCHER_MIX_DISTANCE = 6000                                # From this distance, launchers can share the screen with other hazards (m).
+MAX_LAUNCHERS = 2                                           # Maximum active launchers, subject to firing-line spacing.
+LAUNCHER_VERTICAL_GAP = 150                                 # Minimum distance between the heights of two jets (px).
 
-# settings.9 : Régler la présence des lanceurs dans chaque monde.
-LAUNCHER_EVERY = 6                                  # Réserver un lanceur après ce nombre d'obstacles ordinaires.
-LAUNCHER_MIN_DISTANCE = {'pub': 0,  'cave': 0}      # Distance minimale (en mètres) d'apparition d'un lanceurpour chaque monde. 
-LAUNCHER_BY_WORLD = {'pub': 'cannon',
-                      'cave': 'flame'}              # Type de lanceur pour chaque monde. Le type de lanceur doit correspondre à une clé du dictionnaire LAUNCHERS.
-
-# settings.10 : Régler la densité progressive des obstacles.
-TWO_OBSTACLES_DISTANCE = 2000                       # Jusqu'à 2 obstacles maximum dès 2000 m.
-THREE_OBSTACLES_DISTANCE = 3500                     # Jusqu'à 3 obstacles maximum dès 3500 m.
-
-DENSITY_MAX_DISTANCE = 3500                        # Densité maximum des objets atteint à 3500 m (difficulté max).
-
-OBSTACLE_GAP_MIN = 260                              # Distance minimale entre centres des objets, en pixels.
-OBSTACLE_GAP_SECONDS = 0.60                         # Distance minimale lié à la vitesse cette fois (en secondes, quand le jeu va plus vite).
-
-# settings.11 : Autoriser les combinaisons de lanceurs.
-LAUNCHER_MIX_DISTANCE = 7000                        # Distance minimale pour autoriser les combinaisons de lanceurs (en mètres).
-MAX_LAUNCHERS = 2                                   # Nombre maximum de lanceurs autorisés dans une combinaison.
-LAUNCHER_VERTICAL_GAP = 150                         # Écart minimal entre deux axes de tir.
-
-MEADOW_HEIGHTS = (130, 130, 175, 200, 285, 285, 365, 385)          # Hauteur des obstacles dans le monde prairie par probabilité . Repetition of 130 increases its probability of appearance.
-PUB_HEIGHTS = (130, 130, 130, 165, 200, 240, 285, 285, 365, 375)                        # Hauteur des obstacles dans le monde pub par probabilité (répéter 130 augmente la probabilité d'apparition.
-
-TEXTCOLOR = (255, 255, 255)
-# settings.12 : Défilement des motifs de laser et rotation des chopes.
-LASER_SCROLL_SPEED = 500.0   # Pixels/seconde, vers la gauche.
-LASER_TILE_GAP = 0         # 0 : motifs contigus ; > 0 : espaces transparents.
-MUG_SPIN_SPEED = 210.0      # Degrés/seconde (0 pour désactiver la rotation).
-
-# settings.13 : Chaudrons et cité d'or.
-POT_REQUIRED = 3
-POT_FILE = ASSETS / 'bonus' / 'pot_of_gold.png'
-POT_SIZE = (52, 52)
-POT_SPAWN_INTERVAL = (12.0, 14.0)
-GOLD_SPEED = 360.0
-GOLD_COIN_INTERVAL = (0.7, 1.0)
-
-# settings.14 : Tonneaux et fin du tir des lanceurs.
-BARREL_SPEED_RANGE = (0.85, 1.25)  # Multiplicateur de la vitesse du monde.
-BARREL_JUMP_RANGE = (220.0, 500.0) # Impulsion verticale, pixels/seconde.
-LAUNCHER_HOLD_SECONDS = 0.6       # Reste visible après la fin du tir.
-LAUNCHER_FADE_SECONDS = 0.35      # Disparaît progressivement ensuite.
-
-# settings.15 : Boîtes maximales communes ; proportions toujours conservées.
+# settings.9 — Maximum sprite bounds; each fence variant gets its own lookup key.
+# Each width-height pair sets the bounds for one fence variant (px).
+FENCE_SIZES = ((112, 72), (208, 72), (112, 112), (208, 112))
 OBSTACLE_SIZES = {
     'goose': (100, 90), 'red_goose': (100, 90), 'bat': (85, 60),
     'barrel': (80, 72), 'mug': (44, 48),
@@ -120,28 +88,53 @@ OBSTACLE_SIZES = {
     'rock_horizontal': (160, 60), 'rock_vertical': (52, 138),
     'rock_diagonal': (145, 132),
     'cannon': LAUNCHERS['cannon'][0], 'flame': LAUNCHERS['flame'][0],
-    **{f'fence_{i}': size for i, size in enumerate(FENCE_SIZES)},
-}
+    # Build fence_0 through fence_3 from the four sizes above.
+    **{f'fence_{i}': size for i, size in enumerate(FENCE_SIZES)}}
 
-# settings.16 : Définition des objets. Seuls les objets enabled=True sont chargés.
-# Les effets temporaires se renouvellent à chaque collecte, sans cumul de puissance.
+# settings.10 — Gold world: entry requirement, pot sprite, spawn timing and bonus-world pace.
+POT_REQUIRED = 3                                            # Number of pots needed to enter the gold world.
+POT_FILE = ASSETS / 'bonus' / 'pot_of_gold.png'             # File path for the pot of gold asset.
+POT_SIZE = (52, 52)                                         # Maximum width and height of the pot sprite (px).
+POT_SPAWN_INTERVAL = (12.0, 14.0)                           # Range of delays between pot spawn attempts (s).
+GOLD_SECONDS = 10.0                                         # Playable time in the gold world (s).
+GOLD_SPEED = 360.0                                          # Scroll speed during the gold bonus (px/s).
+GOLD_COIN_INTERVAL = (0.7, 1.0)                             # Shorter delay between coin groups in the gold world (s).
+
+# settings.11 — Enabled pickups and their effects. Collecting a timed pickup refreshes its duration.
+GUINNESS_TIME = 6.0                                         # Duration of the beer's double-coin effect (s).
+CLOVER_TIME = 5.0                                           # Duration of the clover shield (s).
 BONUS_DEFINITIONS = {
     'pot': {
         'enabled': True, 'file': POT_FILE, 'size': POT_SIZE,
         'interval': POT_SPAWN_INTERVAL, 'worlds': ('meadow', 'pub', 'cave'),
-        'effect': 'count', 'limit': POT_REQUIRED,
-    },
-    # Exemples prêts à activer après définition/validation des règles et des images.
+        'effect': 'count', 'limit': POT_REQUIRED,},
+    
     'beer': {
         'enabled': True, 'file': ASSETS / 'bonus' / 'beer_mug.png',
         'size': (44, 48), 'interval': (12.0, 18.0),
-        'worlds': ('pub'),
-        'effect': 'coin_multiplier', 'duration': GUINNESS_TIME, 'value': 2,
-    },
+        'worlds': ('pub',),  # The trailing comma makes this a tuple containing one world.
+        'effect': 'coin_multiplier', 'duration': GUINNESS_TIME, 'value': 2,},
     'clover': {
         'enabled': True, 'file': ASSETS / 'bonus' / 'clover.png',
         'size': (44, 44), 'interval': (15.0, 22.0),
         'worlds': ('meadow', 'pub', 'cave'),
-        'effect': 'shield', 'duration': CLOVER_TIME,
-    },
-}
+        'effect': 'shield', 'duration': CLOVER_TIME,}}
+
+# settings.12 — Reserved tuning values retained for compatibility; unused by the current game loop.
+ITEM_INTERVAL = (10.0, 15.0)
+MAGNET_SECONDS = 6.0
+# Reserved horizontal radius, vertical radius and forward offset (px).
+MAGNET_RX, MAGNET_RY, MAGNET_OFFSET = 180, 110, 45
+REVIVE_COSTS = (50, 100)                                    # Reserved prices for the first and second revives, in coins.
+POT_TIME = 7.0
+PAIR_DISTANCE = 800                                         # Older pair threshold (m). The active cap uses TWO_OBSTACLES_DISTANCE.
+MIN_REACTION_SECONDS = 0.80
+BARREL_BOUNCES = (220, 480)
+LAUNCHER_EVERY = 6                                          # Reserved obstacle count. The current spawn rules draw launchers randomly.
+LAUNCHER_BY_WORLD = {'pub': 'cannon',
+                      'cave': 'flame'}
+
+
+def clamp(number, minimum, maximum):
+    """Return the nearest bound when the number lies outside the interval."""
+    return max(minimum, min(maximum, number))
