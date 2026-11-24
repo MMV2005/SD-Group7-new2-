@@ -5,14 +5,14 @@ from reglages_personnages import *
 from transitions import draw_fog
 from sprite_assets import load_frames, load_image
 
-PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / 'classic'
+PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / PLAYER_SKIN
 
 #--- fonds (un par monde) ---
 BACKGROUND_FOLDER = ASSETS / 'world'
 # y de la ligne du sol dans chaque image SOURCE (pixels).
 BACKGROUND_HORIZONS = {'meadow': 800, 'pub': 830, 'cave': 805, 'gold': 755}
 GOOSE_FRAMES_FOLDER = ASSETS / 'goose'
-ANIMATION_FPS = 9           # Number of frames per second for the player animation (FPS).
+# Les cadences ANIMATION_FPS et WALK_ANIMATION_FPS sont dans reglages_personnages.py.
 
 # --- AJOUT : portail ---
 PORTAL_FILE = ASSETS / 'transition' / 'portal.png'
@@ -21,16 +21,27 @@ PORTAL_SIZE = (210, 425)              # taille du portail à l'écran
 
 class Visuals:
     def __init__(self):
-        self.frames = [
+        # Les images de vol restent dans leur taille originale (112 x 82 px
+        # pour les sprites actuels), comme dans la version précédente.
+        self.fly_frames = [
             load_image(str(PLAYER_FRAMES_FOLDER / f'vol_{i}.png')).convert_alpha()
-            for i in range(3)]
-        
-        self.masks = [pygame.mask.from_surface(frame) for frame in self.frames]
+            for i in range(3)
+        ]
+        if len({frame.get_size() for frame in self.fly_frames}) != 1:
+            raise ValueError('Les 3 images vol doivent avoir les mêmes dimensions.')
 
-        #Image and mask of the pose currently displayed. They are refreshed
-        # by update_pose(), which must be called once per game loop turn.
-        self.image = self.frames[0]
-        self.mask = self.masks[0]
+        # Chaque pose de marche possède un masque calculé SUR son image affichée.
+        self.walk_frames = self.load_walk_frames(PLAYER_FRAMES_FOLDER)
+        self.fly_masks = [pygame.mask.from_surface(frame) for frame in self.fly_frames]
+        self.walk_masks = [pygame.mask.from_surface(frame) for frame in self.walk_frames]
+
+        self.mode = None
+        self.frames = []
+        self.masks = []
+        self.image = None
+        self.mask = None
+        self.pose_started_at = pygame.time.get_ticks()
+        self.set_player_mode('fly')
 
         # --- fonds, chargés une seule fois (un par monde) ---
         self.backgrounds = {name: self.load_background(name) for name in BACKGROUND_HORIZONS}
@@ -51,21 +62,92 @@ class Visuals:
         self.jet_accumulator = 0.0    # reste fractionnaire : JET_RATE / FPS n'est pas entier
         self.load_obstacles()
 
+    @staticmethod
+    def load_walk_frames(folder):
+        """3 images de marche normalisées sur un canevas commun.
+
+        On recadre uniquement les pixels visibles (alpha >= 128), on réduit
+        toutes les poses avec la MÊME échelle et on aligne leurs pieds au bas
+        du canevas. Ça évite les hitboxes géantes dues au PNG source 232x240.
+        """
+        originals = []
+        bounds = []
+        for index in range(3):
+            path = folder / f'marche_{index}.png'
+            if not path.is_file():
+                raise FileNotFoundError(
+                    f"Sprite de marche manquant : {path}. "
+                    "Ajoute marche_0.png, marche_1.png et marche_2.png "
+                    "dans le dossier du skin sélectionné."
+                )
+            image = load_image(path).convert_alpha()
+            rect = image.get_bounding_rect(min_alpha=128)
+            if not rect.width or not rect.height:
+                raise ValueError(f"Sprite de marche vide : {path}")
+            originals.append(image)
+            bounds.append(rect)
+
+        largest_w = max(rect.width for rect in bounds)
+        largest_h = max(rect.height for rect in bounds)
+        ratio = min(WALK_MAX_SIZE[0] / largest_w,
+                    WALK_MAX_SIZE[1] / largest_h)
+
+        canvas_w = max(1, round(largest_w * ratio))
+        canvas_h = max(1, round(largest_h * ratio))
+        canvases = []
+        for image, rect in zip(originals, bounds):
+            cropped = image.subsurface(rect).copy()
+            scaled_w = max(1, round(rect.width * ratio))
+            scaled_h = max(1, round(rect.height * ratio))
+            # scale (non smoothscale) : conserver le style pixel art.
+            scaled = pygame.transform.scale(cropped, (scaled_w, scaled_h))
+            canvas = pygame.Surface((canvas_w, canvas_h), pygame.SRCALPHA)
+            canvas.blit(scaled, scaled.get_rect(midbottom=(canvas_w // 2, canvas_h)))
+            canvases.append(canvas)
+        return canvases
+
     def get_rect(self):
-        """Return a new rect of the player's size (same for the 3 poses)."""
-        return self.frames[0].get_rect()
+        """Rectangle de la posture actuellement utilisée."""
+        return self.image.get_rect()
+
+    def set_player_mode(self, mode, old_rect=None):
+        """Active vol/marche en gardant la même position des pieds.
+
+        Retourne un NOUVEAU pygame.Rect adapté à la taille de cette posture.
+        Si old_rect est absent (initialisation / nouvelle partie), rien à déplacer.
+        """
+        if mode not in ('fly', 'walk'):
+            raise ValueError(f"Mode de mouvement inconnu : {mode}")
+        if mode == self.mode:
+            # Un nouvel appel sans rectangle correspond à un reset de partie.
+            if old_rect is None:
+                self.image = self.frames[0]
+                self.mask = self.masks[0]
+                self.pose_started_at = pygame.time.get_ticks()
+            return old_rect
+
+        self.mode = mode
+        self.frames = self.fly_frames if mode == 'fly' else self.walk_frames
+        self.masks = self.fly_masks if mode == 'fly' else self.walk_masks
+        self.image = self.frames[0]
+        self.mask = self.masks[0]
+        self.pose_started_at = pygame.time.get_ticks()
+
+        if old_rect is None:
+            return None
+        return self.image.get_rect(midbottom=old_rect.midbottom)
 
     def update_pose(self):
-        """Choose the current pose from the elapsed time."""
-        # get_ticks() = milliseconds since pygame.init(); /1000 -> seconds.
-        elapsed_seconds = pygame.time.get_ticks() / 1000
-        # elapsed_seconds * ANIMATION_FPS = number of animation steps so far.
-        # int() keeps the whole part, so the pose only changes every
-        # 1 / ANIMATION_FPS seconds.
-        step = int(elapsed_seconds * ANIMATION_FPS)
-        # The modulo makes the sequence loop forever and keeps the index
-        # inside the list.
-        index = FRAME_SEQUENCE[step % len(FRAME_SEQUENCE)]
+        """Sélectionne la bonne frame ET le masque correspondant."""
+        elapsed = (pygame.time.get_ticks() - self.pose_started_at) / 1000
+        if self.mode == 'walk':
+            index = WALK_FRAME_SEQUENCE[
+                int(elapsed * WALK_ANIMATION_FPS) % len(WALK_FRAME_SEQUENCE)
+            ]
+        else:
+            index = FRAME_SEQUENCE[
+                int(elapsed * ANIMATION_FPS) % len(FRAME_SEQUENCE)
+            ]
         self.image = self.frames[index]
         self.mask = self.masks[index]
 
@@ -247,5 +329,7 @@ class Visuals:
             screen.blit(image, obstacle.rect)
         else:
             screen.blit(obstacle.image, obstacle.rect)
+
+    
 
     
