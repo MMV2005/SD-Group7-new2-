@@ -13,13 +13,13 @@ class JetpackPhysics():
         self.velocity = 0.0  # vertical velocity (negative = upward)
 
     def reset(self, center_y):
-        """À appeler au début de chaque partie : repart à l'arrêt à la hauteur donnée."""
+        """Call at the start of each game: resets at rest at the given height."""
         self.y = float(center_y)
         self.velocity = 0.0
 
     def update(self, thrusting, sprite_height, window_height = None):
-        """Avance la physique d'une frame et renvoie la position verticale du centre,
-        arrondie en entier (prête à être donnée à un pygame.Rect)."""
+        """Advance the physics by one frame and return the center's vertical position,
+        rounded to an integer (ready to pass to a pygame.Rect)."""
 
         # 1. Acceleration based on the Space key state
         if thrusting:

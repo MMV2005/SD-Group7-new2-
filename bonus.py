@@ -1,4 +1,4 @@
-"""BonusSpawner : gestion des bonus et de leurs effets."""
+"""BonusSpawner: manages bonuses and their effects."""
 import random
 import pygame
 from settings import BONUS_DEFINITIONS, WINDOWWIDTH, CEILING, FLOOR, POT_REQUIRED
@@ -12,7 +12,7 @@ class BonusSpawner:
         self.masks = {}
         for kind, definition in self.definitions.items():
             if definition['effect'] not in ('count', 'coin_multiplier', 'shield'):
-                raise ValueError(f"Effet de bonus inconnu : {definition['effect']}")
+                raise ValueError(f"Unknown bonus effect: {definition['effect']}")
             self.images[kind] = load_frames([definition['file']], definition['size'])[0]
             self.masks[kind] = pygame.mask.from_surface(self.images[kind])
         self.reset()
