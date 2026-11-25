@@ -16,6 +16,7 @@ from entities import *
 from worlds import next_hazard, next_gate, other_world
 from transitions import Transition
 from audio import Audio
+from pause_menu import show_pause
 
 
 def terminate():
@@ -113,7 +114,7 @@ def main():
         transition = None
 
         audio.play(world)
-        paused = False
+        leave_action = None # None = partie normale ; sinon "restart" ou "menu" (choisi dans la pause).
 
         # main.2 : Boucle de la partie.
         while True:
@@ -122,30 +123,22 @@ def main():
             # Pas de temps fixe, compatible avec notre physique actuelle.
             dt = 1 / FPS
 
-            # Aucune collision détectée au début de cette image.
             collision = False
+            pause_requested = False
+
             for event in pygame.event.get():
                 if event.type == QUIT:
                     terminate()
 
+                # Clic sur le bouton pause du bandeau.
                 if event.type == MOUSEBUTTONDOWN and event.button == 1:
                     if hud.pause_rect.collidepoint(event.pos):
-                        paused = not paused
-                        thrusting = False
-                        if paused:
-                            audio.pause()
-                        else:
-                            audio.unpause()
+                        pause_requested = True
 
                 if event.type == KEYDOWN:
                     if event.key == K_p:
-                        paused = not paused
-                        thrusting = False
-                        if paused:
-                            audio.pause()
-                        else:
-                            audio.unpause()
-                    if event.key == K_SPACE and not paused:
+                        pause_requested = True
+                    if event.key == K_SPACE:
                         thrusting = True
 
                 if event.type == KEYUP:
@@ -155,10 +148,19 @@ def main():
                     if event.key == K_SPACE:
                         thrusting = False
 
+            # Ouvrir le menu pause (bloquant : le jeu est figé tant qu'il est ouvert).
+            if pause_requested:
+                thrusting = False
+                audio.pause()
+                choice = show_pause(windowSurface)
+                audio.unpause()
+
+                if choice != "resume":
+                    leave_action = choice
+                    break
+
             # main.3 : Faire avancer une transition en cours.
-            if paused:
-                pass
-            elif transition is not None:
+            if transition is not None:
 
                 # Changer le monde lorsque le nuage couvre l'écran.
                 if transition.update(dt):
@@ -380,12 +382,6 @@ def main():
             if world == 'gold' and transition is None:
                 hud.draw_gold_timer(windowSurface, gold_remaining, GOLD_SECONDS)
 
-            if paused:
-                shade = pygame.Surface((WINDOWWIDTH, WINDOWHEIGHT), pygame.SRCALPHA)
-                shade.fill((0, 0, 0, 130))
-                windowSurface.blit(shade, (0, 0))
-                label = font.render("PAUSE - P ou bouton pour reprendre", True, TEXTCOLOR)
-                windowSurface.blit(label, label.get_rect(center=(WINDOWWIDTH // 2, WINDOWHEIGHT // 2)))
 
             pygame.display.update()
 
@@ -394,7 +390,11 @@ def main():
                 topScore = max(topScore, score)
                 break
 
-
+        # Quitter depuis la pause : on saute l'écran Game Over.
+        if leave_action is not None:
+            open_main_menu = leave_action == "menu"
+            continue
+        
         # La musique s’arrête et le son Game Over est joué par audio.py.
         audio.play_game_over()
 
