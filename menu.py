@@ -2,6 +2,8 @@ import pygame
 from pathlib import Path
 from collections import deque
 from functools import lru_cache
+from menu_boutique import show_shop
+from sauvegarde import Profil
 from sprite_assets import resolve_image_path
 
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
@@ -86,7 +88,7 @@ def draw_text(window, message, center, font):
 
 
 def show_menu(window, high_score=0, last_score=None,
-              sound_enabled=True, coins=0):
+              sound_enabled=True, coins=0, boutique=None):
     """Display the menu in a 960 × 540 window."""
 
     clock = pygame.time.Clock()
@@ -156,6 +158,8 @@ def show_menu(window, high_score=0, last_score=None,
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if sound_button_rect.collidepoint(event.pos):
                         sound_enabled = not sound_enabled
+                        if boutique is not None:
+                            boutique.modifier_son(sound_enabled)
                         if pygame.mixer.get_init():
                             pygame.mixer.music.set_volume(
                                 1.0 if sound_enabled else 0.0
@@ -166,6 +170,11 @@ def show_menu(window, high_score=0, last_score=None,
                             if rectangle.collidepoint(event.pos):
                                 if label == "PLAY":
                                     return sound_enabled
+                                if label == "SHOP":
+                                    if boutique is None:
+                                        boutique = Profil()
+                                    show_shop(window, boutique, load_image)
+                                    break
                                 page = label
                                 break
 
@@ -184,7 +193,7 @@ def show_menu(window, high_score=0, last_score=None,
 
             # Draw the chest icon and coin count over the panel.
             window.blit(chest, (20, 10))
-            draw_text(window, f"CHEST: {coins}", (160, 37), button_font)
+            draw_text(window, f"CHEST: {boutique.pieces if boutique else coins}", (160, 37), button_font)
 
             if page == "home":
                 for label, rectangle in buttons:
@@ -211,7 +220,7 @@ def show_menu(window, high_score=0, last_score=None,
                     lines = [
                         "HIGH SCORE",
                         f"{high_score} points",
-                        "Best score this session."
+                        "Personal best."
                     ]
                 elif page == "RULES AND CONTROLS":
                     lines = [
@@ -220,12 +229,6 @@ def show_menu(window, high_score=0, last_score=None,
                         "Release SPACE to move down.",
                         "Press ESC during the game to quit."
                     ]
-                else:
-                    lines = [
-                        "SHOP",
-                        "Coming soon: no purchases available yet."
-                    ]
-
                 for index, line in enumerate(lines):
                     draw_text(window, line, (480, 255 + index * 36), font)
 

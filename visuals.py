@@ -5,7 +5,7 @@ from reglages_personnages import *
 from transitions import draw_fog
 from sprite_assets import load_frames, load_image
 
-PLAYER_FRAMES_FOLDER = ASSETS / 'Skins' / PLAYER_SKIN
+from reglages_boutique import dossier_skin
 
 #--- fonds (un par monde) ---
 BACKGROUND_FOLDER = ASSETS / 'world'
@@ -20,28 +20,9 @@ PORTAL_SIZE = (210, 425)              # taille du portail à l'écran
 
 
 class Visuals:
-    def __init__(self):
-        # Les images de vol restent dans leur taille originale (112 x 82 px
-        # pour les sprites actuels), comme dans la version précédente.
-        self.fly_frames = [
-            load_image(str(PLAYER_FRAMES_FOLDER / f'vol_{i}.png')).convert_alpha()
-            for i in range(3)
-        ]
-        if len({frame.get_size() for frame in self.fly_frames}) != 1:
-            raise ValueError('Les 3 images vol doivent avoir les mêmes dimensions.')
-
-        # Chaque pose de marche possède un masque calculé SUR son image affichée.
-        self.walk_frames = self.load_walk_frames(PLAYER_FRAMES_FOLDER)
-        self.fly_masks = [pygame.mask.from_surface(frame) for frame in self.fly_frames]
-        self.walk_masks = [pygame.mask.from_surface(frame) for frame in self.walk_frames]
-
-        self.mode = None
-        self.frames = []
-        self.masks = []
-        self.image = None
-        self.mask = None
-        self.pose_started_at = pygame.time.get_ticks()
-        self.set_player_mode('fly')
+    def __init__(self, skin=PLAYER_SKIN):
+        self.skin = None
+        self.set_skin(skin)
 
         # --- fonds, chargés une seule fois (un par monde) ---
         self.backgrounds = {name: self.load_background(name) for name in BACKGROUND_HORIZONS}
@@ -61,6 +42,75 @@ class Visuals:
         self.coins = []               # particules actuellement à l'écran
         self.jet_accumulator = 0.0    # reste fractionnaire : JET_RATE / FPS n'est pas entier
         self.load_obstacles()
+
+    def set_skin(self, skin):
+        if skin == self.skin:
+            return
+        folder = dossier_skin(skin)
+        paths = [folder / f'vol_{i}.png' for i in range(3)]
+        if skin in ('jensen', 'mcgregor'):
+            classic = dossier_skin('classic')
+            classic_fly = [load_image(classic / f'vol_{i}.png').convert_alpha()
+                           for i in range(3)]
+            self.fly_frames = self.load_matched_frames(paths, classic_fly)
+            walk_paths = [folder / f'marche_{i}.png' for i in range(3)]
+            self.walk_frames = self.load_matched_frames(
+                walk_paths, self.load_walk_frames(classic), walking=True
+            )
+        else:
+            self.fly_frames = [load_image(path).convert_alpha() for path in paths]
+            if len({frame.get_size() for frame in self.fly_frames}) != 1:
+                raise ValueError('Les 3 images vol doivent avoir les mêmes dimensions.')
+            self.walk_frames = self.load_walk_frames(folder)
+
+        self.fly_masks = [pygame.mask.from_surface(frame) for frame in self.fly_frames]
+        self.walk_masks = [pygame.mask.from_surface(frame) for frame in self.walk_frames]
+
+        self.mode = None
+        self.frames = []
+        self.masks = []
+        self.image = None
+        self.mask = None
+        self.pose_started_at = pygame.time.get_ticks()
+        self.set_player_mode('fly')
+
+        self.skin = skin
+
+    @staticmethod
+    def load_matched_frames(paths, reference, walking=False):
+        """Redimensionne chaque PNG original une fois, à la taille finale."""
+        sources = []
+        pixels = 0
+        for path in paths:
+            image = load_image(path).convert_alpha()
+            bounds = image.get_bounding_rect(min_alpha=20)
+            if not bounds.width or not bounds.height:
+                raise ValueError(f"Pose vide : {path}")
+            sprite = image.subsurface(bounds)
+            sources.append(sprite)
+            pixels += pygame.mask.from_surface(sprite).count()
+
+        target = sum(pygame.mask.from_surface(frame).count() for frame in reference)
+        if not pixels or not target:
+            raise ValueError("Silhouette vide lors du calcul de la taille.")
+        ratio = math.sqrt(target / pixels)
+        scaled = []
+        for sprite in sources:
+            size = (max(1, round(sprite.get_width() * ratio)),
+                    max(1, round(sprite.get_height() * ratio)))
+            scaled.append(pygame.transform.smoothscale(sprite, size))
+
+        width = max(frame.get_width() for frame in scaled)
+        height = max(frame.get_height() for frame in scaled)
+        frames = []
+        for frame in scaled:
+            canvas = pygame.Surface((width, height), pygame.SRCALPHA)
+            position = frame.get_rect(center=canvas.get_rect().center)
+            if walking:
+                position.bottom = height
+            canvas.blit(frame, position)
+            frames.append(canvas)
+        return frames
 
     @staticmethod
     def load_walk_frames(folder):
@@ -330,6 +380,22 @@ class Visuals:
         else:
             screen.blit(obstacle.image, obstacle.rect)
 
+    
+
+    
+
+    
+
+    
+
+
+    
+
+    
+
+    
+
+    
     
 
     

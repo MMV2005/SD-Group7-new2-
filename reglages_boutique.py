@@ -1,7 +1,14 @@
-#reglages_boutique.1 : Code secret pour la boutique (Code secret : boutique > A, saisir le code puis Entree ---)
-CODE_ADMIN = "admin" # Ce code debloque les deux skins sans toucher au coffre
+from settings import ASSETS
 
-#reglages_boutique.2 : Préparation des skins (à mettre dans le dossier assets/skins)
-SKINS = {"classic" : {"nom" : "Classique", "prix" : 0},
-         "stone" : {"nom" : "Pierre", "prix" : 1000},
-         "gold" : {"nom" : "Or", "prix" : 100000}} #index des skins disponibles, avec leur nom et leur prix (en pièces d'or)
+CODE_ADMIN = "admin"
+SKINS = {
+    "classic": {"nom": "Classic Leprechaun", "prix": 0},
+    "gold": {"nom": "Gold Leprechaun", "prix": 100000},
+    "stone": {"nom": "Stone Leprechaun", "prix": 1000},
+    "mcgregor": {"nom": "McGregor", "prix": 5000, "mystere": True},
+    "jensen": {"nom": "Jensen Huang", "dossier": "jensen huang", "prix": 10000, "mystere": True},
+}
+
+
+def dossier_skin(skin):
+    return ASSETS / "Skins" / SKINS[skin].get("dossier", skin)
