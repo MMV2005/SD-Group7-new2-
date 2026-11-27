@@ -95,10 +95,10 @@ OBSTACLE_SIZES = {
 POT_REQUIRED = 3                                            # Number of pots needed to enter the gold world.
 POT_FILE = ASSETS / 'bonus' / 'pot_of_gold.png'             # File path for the pot of gold asset.
 POT_SIZE = (52, 52)                                         # Maximum width and height of the pot sprite (px).
-POT_SPAWN_INTERVAL = (12, 14)                                 # Range of delays between pot spawn attempts (s).
-GOLD_SECONDS = 10.0                                         # Playable time in the gold world (s).
-GOLD_SPEED = 360.0                                          # Scroll speed during the gold bonus (px/s).
-GOLD_COIN_INTERVAL = (0.7, 1.0)                             # Shorter delay between coin groups in the gold world (s).
+POT_SPAWN_INTERVAL = (12.0, 14.0)                          # Range of delays between pot spawn attempts (s).
+GOLD_SECONDS = 15.0                                         # Playable time in the gold world (s).
+GOLD_SPEED = 500.0                                          # Scroll speed during the gold bonus (px/s).
+GOLD_COIN_INTERVAL = (1.7, 2.0)                             # Shorter delay between coin groups in the gold world (s).
 
 # settings.11 — Enabled pickups and their effects. Collecting a timed pickup refreshes its duration.
 GUINNESS_TIME = 6.0                                         # Duration of the beer's double-coin effect (s).

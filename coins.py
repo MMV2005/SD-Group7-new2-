@@ -7,6 +7,7 @@ class CoinSpawner:
     """Spawns coin patterns from the right side, handles pickup and drawing."""
 
     PATTERNS = ('wave', 'circle', 'cross', 'zigzag')  # All available coin patterns
+    GOLD_PATTERNS = ('gold_stream', 'gold_rain', 'gold_spiral', 'gold_arch')  # Patterns used in the gold world
 
     def __init__(self):
         self.coins = []  # Stores all active coins (position and collision rectangle)
@@ -31,6 +32,14 @@ class CoinSpawner:
             return 2 * CROSS_UNIT + 2 * RADIUS  # Full width of the cross
         if kind == 'zigzag':
             return COINS_PER_ZIGZAG * SPACING  # Total width of the zigzag
+        if kind == 'gold_stream':
+            return 15 * SPACING + 2 * RADIUS  # Width of three dense rows
+        if kind == 'gold_rain':
+            return 8 * SPACING + 2 * RADIUS  # Width of the coin shower
+        if kind == 'gold_spiral':
+            return 29 * 22 + 2 * RADIUS  # Width of the spiral
+        if kind == 'gold_arch':
+            return 23 * SPACING + 2 * RADIUS  # Width of the large arch
         return COINS_PER_WAVE * SPACING  # Default width: wave pattern
 
     def _zone_is_free(self, baddies, kind):
@@ -99,9 +108,64 @@ class CoinSpawner:
             offset = ZIGZAG_AMPLITUDE if i % 2 == 0 else -ZIGZAG_AMPLITUDE
             self._add_coin(x, y + offset)
 
+    def _spawn_gold_stream(self):
+        """Creates three dense horizontal rows of coins."""
+        # Keep all three rows between the ceiling and the floor
+        margin = 2 * RADIUS + 8
+        y = random.randint(CEILING + RADIUS + margin, FLOOR - RADIUS - margin)
+
+        for row in range(3):
+            for col in range(16):
+                x = WINDOWWIDTH + 30 + col * SPACING
+                coin_y = y + (row - 1) * margin
+                self._add_coin(x, coin_y)
+
+    def _spawn_gold_rain(self):
+        """Creates a dense shower of coins across the playable area."""
+        columns = 9
+        rows = 5
+
+        for col in range(columns):
+            x = WINDOWWIDTH + 30 + col * SPACING
+
+            for row in range(rows):
+                # Spread the rows evenly while keeping every coin inside the playable area
+                y = CEILING + RADIUS + row * (FLOOR - CEILING - 2 * RADIUS) / (rows - 1)
+                self._add_coin(x, y)
+
+    def _spawn_gold_spiral(self):
+        """Creates a long spiral made of gold coins."""
+        count = 30
+        center_y = (CEILING + FLOOR) // 2
+
+        for i in range(count):
+            angle = i * 0.55
+            x = WINDOWWIDTH + 30 + i * 22
+            y = center_y + 135 * math.sin(angle)
+            self._add_coin(x, y)
+
+    def _spawn_gold_arch(self):
+        """Creates a large arch made of gold coins."""
+        count = 20
+        center_y = random.randint(CEILING + RADIUS + 120, FLOOR - RADIUS)
+
+        for i in range(count):
+            x = WINDOWWIDTH + 30 + i * SPACING
+            progress = i / (count - 1)
+            y = center_y - 120 * math.sin(math.pi * progress)
+            self._add_coin(x, y)
+
     def _spawn(self, kind):
         """Calls the generator corresponding to the selected pattern."""
-        if kind == 'circle':
+        if kind == 'gold_stream':
+            self._spawn_gold_stream()
+        elif kind == 'gold_rain':
+            self._spawn_gold_rain()
+        elif kind == 'gold_spiral':
+            self._spawn_gold_spiral()
+        elif kind == 'gold_arch':
+            self._spawn_gold_arch()
+        elif kind == 'circle':
             self._spawn_circle()
         elif kind == 'cross':
             self._spawn_cross()
@@ -110,13 +174,20 @@ class CoinSpawner:
         else:
             self._spawn_wave()  # Default pattern
 
-    def update(self, player_rect, speed, baddies, blocked=False, dt=1 / FPS, interval=COIN_INTERVAL):
+    def update(self, player_rect, speed, baddies, blocked=False, dt=1 / FPS, interval=COIN_INTERVAL, gold=False):
         """
         Updates spawning, movement, collection and removal.
         Returns the number of coins collected during this frame.
         """
         # --- Spawn new patterns (paused when spawning is blocked) ---
         if not blocked:
+            # Select the pattern family that matches the current world
+            patterns = self.GOLD_PATTERNS if gold else self.PATTERNS
+
+            # Make sure the next pattern belongs to the current world
+            if self.next_kind not in patterns:
+                self.next_kind = random.choice(patterns)
+
             self.timer -= dt * FPS  # Decrease the timer using elapsed time
 
             if self.timer <= 0:
@@ -124,7 +195,7 @@ class CoinSpawner:
                     self._spawn(self.next_kind)  # Spawn the selected pattern
 
                     # Select the next pattern and set the delay before the next spawn
-                    self.next_kind = random.choice(self.PATTERNS)
+                    self.next_kind = random.choice(patterns)
                     self.timer = random.randint(int(interval[0] * FPS), int(interval[1] * FPS))
                 else:
                     self.timer = 10  # Try again in 10 frames if a hazard blocks the area
@@ -143,7 +214,7 @@ class CoinSpawner:
             elif coin['rect'].right < 0:  # Remove coins that have left the screen
                 self.coins.remove(coin)
 
-        return collected  # Send the number of collected coins for this frame back to the game
+        return collected  # Send the number of coins collected for this frame back to the game
 
     def draw(self, surface):
         """Draws all active coins on the screen."""
