@@ -1,6 +1,6 @@
 """Main intégré : pièces, HUD, pause, obstacles et transitions.
 Remplacer ce fichier avec les modules de la même archive.
-Les compteurs de pièces et le record sont conservés pendant la session.
+Le profil du joueur est conservé dans sauvegarde.json.
 """
 import pygame, random, sys
 from game_strip import GameStrip
@@ -8,6 +8,8 @@ from pygame.locals import *
 from coins import CoinSpawner
 from bonus import BonusSpawner
 from menu import show_menu
+from sauvegarde import Profil
+from uuid import uuid4
 from game_over import show_game_over
 from settings import *
 from gravity import JetpackPhysics
@@ -38,7 +40,8 @@ def main():
     audio = Audio()
 
     # Set up images.
-    visuals = Visuals()               # loads the 3 frames and their masks
+    boutique = Profil()
+    visuals = Visuals(boutique.equipe)               # loads the 3 frames and their masks
     hud = GameStrip()
     playerRect = visuals.get_rect()
 
@@ -49,15 +52,15 @@ def main():
         visuals.jet_images)
 
 
-    topScore = 0
-    last_score = None
-    sound_enabled = True
+    topScore = boutique.record
+    last_score = boutique.dernier_score
+    sound_enabled = boutique.son
     open_main_menu = True
     gravity = JetpackPhysics()
     coins = CoinSpawner()
     bonuses = BonusSpawner()
     coin_count = 0
-    wallet = 0  # Total des pièces collectées pendant cette session.
+
 
     while True:
         # Musique du menu principal (également au retour après Game Over).
@@ -70,14 +73,17 @@ def main():
                 high_score=topScore,
                 last_score=last_score,
                 sound_enabled=sound_enabled,
-                coins=wallet
+                boutique=boutique
             )
+
+        visuals.set_skin(boutique.equipe)
 
         # Appliquer le choix SOUND ON/OFF fait dans le menu.
         audio.set_enabled(sound_enabled)
         audio.stop_game_over()
         
         # main.1 : Réinitialiser la partie et le monde.
+        run_id = uuid4().hex
         hazards = []
         world = 'meadow'
         distance = 0.0
@@ -400,7 +406,7 @@ def main():
 
         # Save the latest score and update the session record.
         last_score = score
-        wallet += coin_count
+        boutique.fin_partie(run_id, coin_count, score)
         topScore = max(topScore, score)
 
         # Show the game-over panel over the frozen game.
@@ -412,3 +418,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

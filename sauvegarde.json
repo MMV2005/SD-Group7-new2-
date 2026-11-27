@@ -1,0 +1,14 @@
+{
+  "wallet": 0,
+  "owned": [
+    "classic"
+  ],
+  "selected": "classic",
+  "scores": [],
+  "last_score": null,
+  "last_run": "",
+  "sound": true,
+  "admin": true,
+  "admin_skin": "jensen",
+  "version": 1
+}
