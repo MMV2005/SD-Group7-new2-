@@ -102,6 +102,7 @@ def main():
         thrusting = False
 
         # Effets visuels, pièces et bandeau.
+        visuals.reset_backgrounds()
         visuals.reset_jet()
         coins.reset()
         coin_count = 0
@@ -206,6 +207,8 @@ def main():
 
                     distance += speed * dt * METERS_PER_PIXEL
                     score = int(distance)
+
+                visuals.scroll_background(world, speed * dt)
 
                 # Animation et mouvement du personnage.
                 # Depuis le sol : ESPACE déclenche le décollage.
@@ -420,4 +423,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
