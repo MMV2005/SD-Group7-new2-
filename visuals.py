@@ -9,8 +9,14 @@ from reglages_boutique import dossier_skin
 
 #--- fonds (un par monde) ---
 BACKGROUND_FOLDER = ASSETS / 'world'
+BACKGROUND_SCROLL_FACTOR = 0.20  # Fraction du déplacement utilisée pour le décor.
 # y de la ligne du sol dans chaque image SOURCE (pixels).
-BACKGROUND_HORIZONS = {'meadow': 800, 'pub': 830, 'cave': 805, 'gold': 755}
+PANORAMAS = {
+    'meadow': ('meadow_panorama.png', 800),
+    'pub': ('pub_panorama.png', 830),
+    'cave': ('cave_panorama.png', 805),
+    'gold': ('gold_city_panorama.png', 755),
+}
 GOOSE_FRAMES_FOLDER = ASSETS / 'goose'
 # Les cadences ANIMATION_FPS et WALK_ANIMATION_FPS sont dans reglages_personnages.py.
 
@@ -25,7 +31,8 @@ class Visuals:
         self.set_skin(skin)
 
         # --- fonds, chargés une seule fois (un par monde) ---
-        self.backgrounds = {name: self.load_background(name) for name in BACKGROUND_HORIZONS}
+        self.backgrounds = {name: self.load_background(name) for name in PANORAMAS}
+        self.reset_backgrounds()
 
         # --- AJOUT : image du portail, chargée une seule fois ---
         portal = load_image(str(PORTAL_FILE)).convert_alpha()
@@ -204,23 +211,39 @@ class Visuals:
     @staticmethod
     def load_background(world):
         """Load the image once, then align its ground line on FLOOR."""
-        source = load_image(str(BACKGROUND_FOLDER / f'bg_{world}.png')).convert()
+        filename, horizon = PANORAMAS[world]
+        source = load_image(BACKGROUND_FOLDER / filename).convert()
         w, h = source.get_size()
-        horizon = BACKGROUND_HORIZONS[world]
+        width = 6 * WINDOWWIDTH  # Chaque panorama contient six décors.
 
         # Cut the source in two at the horizon: landscape above, soil below.
         top = source.subsurface((0, 0, w, horizon))
         bottom = source.subsurface((0, horizon, w, h - horizon))
 
         # Stretch each part so the horizon lands exactly on FLOOR.
-        background = pygame.Surface((WINDOWWIDTH, WINDOWHEIGHT), 0, 24)
-        background.blit(pygame.transform.scale(top, (WINDOWWIDTH, FLOOR)), (0, 0))
-        background.blit(pygame.transform.scale(bottom, (WINDOWWIDTH, WINDOWHEIGHT - FLOOR)), (0, FLOOR))
+        background = pygame.Surface((width, WINDOWHEIGHT), 0, 24)
+        background.blit(pygame.transform.smoothscale(top, (width, FLOOR)), (0, 0))
+        background.blit(pygame.transform.smoothscale(bottom, (width, WINDOWHEIGHT - FLOOR)), (0, FLOOR))
         return background.convert()
 
     def draw_background(self, screen, world='meadow'):
         """Draw the background of the given world. Must be called BEFORE anything else each frame."""
-        screen.blit(self.backgrounds[world], (0, 0))
+        background = self.backgrounds[world]
+        # Une seule coordonnée entière : les deux morceaux sont jointifs au pixel près.
+        x = int(self.background_offsets[world])
+        width = screen.get_width()
+        first = min(width, background.get_width() - x)
+        screen.blit(background, (0, 0), (x, 0, first, background.get_height()))
+        if first < width:
+            screen.blit(background, (first, 0), (0, 0, width - first, background.get_height()))
+
+    def reset_backgrounds(self):
+        self.background_offsets = dict.fromkeys(PANORAMAS, 0.0)
+
+    def scroll_background(self, world, movement):
+        width = self.backgrounds[world].get_width()
+        offset = self.background_offsets[world] + movement * BACKGROUND_SCROLL_FACTOR
+        self.background_offsets[world] = offset % width
 
     # visuals.5 : Portails des mondes normaux uniquement.
     def draw_portal(self, screen, portal_x):
@@ -379,23 +402,3 @@ class Visuals:
             screen.blit(image, obstacle.rect)
         else:
             screen.blit(obstacle.image, obstacle.rect)
-
-    
-
-    
-
-    
-
-    
-
-
-    
-
-    
-
-    
-
-    
-    
-
-    
