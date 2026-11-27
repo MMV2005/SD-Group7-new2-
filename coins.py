@@ -146,7 +146,7 @@ class CoinSpawner:
 
     def _spawn_gold_arch(self):
         """Creates a large arch made of gold coins."""
-        count = 24
+        count = 20
         center_y = random.randint(CEILING + RADIUS + 120, FLOOR - RADIUS)
 
         for i in range(count):
