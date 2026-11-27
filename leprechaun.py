@@ -19,7 +19,7 @@ from worlds import next_hazard, next_gate, other_world
 from transitions import Transition
 from audio import Audio
 from pause_menu import show_pause
-
+from fortune_wheel import FortuneWheel
 
 def terminate():
     pygame.quit()
@@ -59,6 +59,7 @@ def main():
     gravity = JetpackPhysics()
     coins = CoinSpawner()
     bonuses = BonusSpawner()
+    wheel = FortuneWheel()
     coin_count = 0
 
 
@@ -89,6 +90,8 @@ def main():
         distance = 0.0
         score = 0
         speed = START_SPEED
+        gold_visits = 0         # entrées dans la cité d'or sur cette partie
+        wheel_used = False      # la roue n'apparaît qu'une fois par partie
 
         # Délais avant les obstacles.
         danger_timer = 1.0
@@ -183,6 +186,7 @@ def main():
 
                     bonuses.clear()
                     if world == 'gold':
+                        gold_visits += 1
                         bonuses.consume_pots()
                         hud.pot = 0
                         gold_remaining = GOLD_SECONDS
@@ -395,6 +399,21 @@ def main():
 
             # 8. End the game if the player has collided with an obstacle. Actualize the top score if necessary.
             if collision:
+                # Roue : après au moins 2 passages en cité d'or, une seule fois par partie.
+                if gold_visits >= WHEEL_GOLD_VISITS_REQUIRED and not wheel_used:
+                    wheel_used = True
+                    thrusting = False
+                    reward = wheel.run(windowSurface, mainClock)   # bloquant
+                    coin_count += reward['coins']
+
+                    if reward['revive']:
+                        hazards.clear()                  # supprime l'obstacle fatal
+                        danger_timer = 1.0               # reprise en douceur
+                        gravity.reset(playerRect.centery)
+                        if 'clover' in bonuses.definitions:
+                            bonuses.collect('clover')    # bouclier 5 s, affiché dans le HUD
+                        continue                         # la partie reprend
+
                 topScore = max(topScore, score)
                 break
 

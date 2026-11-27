@@ -95,7 +95,7 @@ OBSTACLE_SIZES = {
 POT_REQUIRED = 3                                            # Number of pots needed to enter the gold world.
 POT_FILE = ASSETS / 'bonus' / 'pot_of_gold.png'             # File path for the pot of gold asset.
 POT_SIZE = (52, 52)                                         # Maximum width and height of the pot sprite (px).
-POT_SPAWN_INTERVAL = (12.0, 14.0)                          # Range of delays between pot spawn attempts (s).
+POT_SPAWN_INTERVAL = (1, 2)                          # Range of delays between pot spawn attempts (s).
 GOLD_SECONDS = 15.0                                         # Playable time in the gold world (s).
 GOLD_SPEED = 500.0                                          # Scroll speed during the gold bonus (px/s).
 GOLD_COIN_INTERVAL = (1.7, 2.0)                             # Shorter delay between coin groups in the gold world (s).
@@ -134,6 +134,25 @@ LAUNCHER_EVERY = 6                                          # Reserved obstacle 
 LAUNCHER_BY_WORLD = {'pub': 'cannon',
                       'cave': 'flame'}
 
+# settings.13 — Roue de la fortune (affichée juste avant le Game Over).
+WHEEL_GOLD_VISITS_REQUIRED = 2                       # Passages en cité d'or (par partie) pour débloquer la roue.
+WHEEL_FILE = ASSETS / 'wheel' / 'wheel.png'           # Images à copier dans assets/wheel/ (renommées sans accents).
+WHEEL_POINTER_FILE = ASSETS / 'wheel' / 'arrow.png'
+WHEEL_DIAMETER = 400                                 # Diamètre de la roue à l'écran (px).
+WHEEL_JACKPOT_COINS = 300                            # Pièces gagnées avec le jackpot (en plus du revive).
+
+# ORDRE = celui de l'image, dans le sens horaire en partant du haut. Ne pas le changer.
+# weight = poids de tirage ; la probabilité d'un segment est weight / somme des poids (ici 100).
+WHEEL_SEGMENTS = [
+    {'label': '+50',     'kind': 'coins',   'value': 50,  'weight': 20},
+    {'label': '+1 Luck', 'kind': 'luck',    'value': 1,   'weight': 12},
+    {'label': '+100',    'kind': 'coins',   'value': 100, 'weight': 10},
+    {'label': 'Jackpot', 'kind': 'jackpot', 'value': WHEEL_JACKPOT_COINS, 'weight': 2},
+    {'label': 'Revive',  'kind': 'revive',  'value': 0,   'weight': 8},
+    {'label': '+25',     'kind': 'coins',   'value': 25,  'weight': 25},
+    {'label': '+1 Luck', 'kind': 'luck',    'value': 1,   'weight': 12},
+    {'label': '+75',     'kind': 'coins',   'value': 75,  'weight': 11},
+]
 
 def clamp(number, minimum, maximum):
     """Return the nearest bound when the number lies outside the interval."""
