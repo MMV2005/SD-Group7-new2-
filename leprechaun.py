@@ -349,9 +349,11 @@ def main():
                 if transition is None:
                     in_gold = world == 'gold'
                     gained = coins.update(
-                        playerRect, speed, hazards, blocked=gate_pending, dt=dt,
-                        interval=GOLD_COIN_INTERVAL if in_gold else COIN_INTERVAL
-                    )
+                        playerRect, speed, hazards,
+                        blocked=gate_pending,
+                        dt=dt,
+                        interval=GOLD_COIN_INTERVAL if in_gold else COIN_INTERVAL,
+                        gold=in_gold)
                     coin_count += gained * bonuses.coin_multiplier
 
                     # Son lors de la récupération des pièces.
