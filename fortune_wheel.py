@@ -6,12 +6,13 @@ Les réglages (segments, poids, jackpot, images) sont dans settings.py.
 """
 import random
 import sys
-
 import pygame
 from pygame.locals import *
+from menu import FONTS_DIR, MENU_ASSETS_DIR, MENU_ASSETS_DIR, draw_text, load_image
 
 from settings import (WINDOWWIDTH, WINDOWHEIGHT, FPS, WHEEL_FILE,
                       WHEEL_POINTER_FILE, WHEEL_DIAMETER, WHEEL_SEGMENTS)
+from sprite_assets import resolve_image_path
 
 # Chaque segment occupe le même angle (45 degrés pour 8 segments).
 SEGMENT_ANGLE = 360 / len(WHEEL_SEGMENTS)
@@ -31,6 +32,8 @@ class FortuneWheel:
     INPUT_DELAY = 0.6           # touches ignorées à l'apparition (évite le spam d'espace en mourant)
     MIN_TURNS, MAX_TURNS = 4, 6 # tours complets avant l'arrêt
     POINTER_TIP = 0.17          # hauteur de la POINTE du pointeur (fraction du diamètre depuis le haut de l'image)
+    PANEL_W = 800               # largeur des panneaux (px)
+    PANEL_H = 150               # hauteur des panneaux (px)
 
     # fb.1 : Chargement des images une seule fois (à appeler avant la boucle du jeu).
     def __init__(self):
@@ -43,10 +46,18 @@ class FortuneWheel:
         self.overlay = pygame.Surface((WINDOWWIDTH, WINDOWHEIGHT), pygame.SRCALPHA)
         self.overlay.fill((0, 0, 0, 170))
 
-        self.title_font = pygame.font.SysFont(None, 52)
-        self.hint_font = pygame.font.SysFont(None, 36)
-        self.result_font = pygame.font.SysFont(None, 50)
+        # Custom fonts matching the main menu
+        self.title_font = pygame.font.Font(str(FONTS_DIR / "press_start.ttf"), 20)
+        self.hint_font = pygame.font.Font(str(FONTS_DIR / "tiny5_duo.ttf"), 24)
+        self.result_font = pygame.font.Font(str(FONTS_DIR / "pixelify.ttf"), 24)
         self.reset()
+
+        # Wooden panels from the main menu
+        panel_path = resolve_image_path(MENU_ASSETS_DIR / "wooden_button.png")
+        panel = pygame.image.load(str(panel_path)).convert_alpha()
+        w = min(self.PANEL_W, WINDOWWIDTH - 20) # min(...) évite que le panneau dépasse de la fenêtre si elle est étroite
+        self.title_panel = pygame.transform.smoothscale(panel, (w, self.PANEL_H))
+        self.bottom_panel = pygame.transform.smoothscale(panel, (w, self.PANEL_H))  
 
     # fb.2 : Remise à zéro à chaque nouvelle apparition de la roue.
     def reset(self):
@@ -138,11 +149,15 @@ class FortuneWheel:
 
     # fb.7 : Dessin (sur le jeu figé, copié par run()).
     def _text(self, screen, font, text, color, y):
-        shadow = font.render(text, True, (0, 0, 0))
-        surf = font.render(text, True, color)
+    # Render text with a dark outline
+        surface = font.render(text, True, color)
+        outline = font.render(text, True, (45, 20, 10))
         x = WINDOWWIDTH // 2
-        screen.blit(shadow, shadow.get_rect(center=(x + 2, y + 2)))
-        screen.blit(surf, surf.get_rect(center=(x, y)))
+        # Draw the outline
+        for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
+            screen.blit(outline, outline.get_rect(center=(x + dx, y + dy)))
+        # Draw the main text
+        screen.blit(surface, surface.get_rect(center=(x, y)))
 
     def _result_message(self):
         kind, value = self.result['kind'], self.result['value']
@@ -167,14 +182,19 @@ class FortuneWheel:
             midbottom=(self.center[0], top + int(WHEEL_DIAMETER * self.POINTER_TIP)))
         screen.blit(self.pointer_img, pointer_rect)
 
-        self._text(screen, self.title_font, 'WHEEL OF FORTUNE', (255, 215, 0), 36)
-        bottom_y = WINDOWHEIGHT - 26
+        # Draw the title panel
+        title_rect = self.title_panel.get_rect(midtop=(WINDOWWIDTH // 2, -15))
+        screen.blit(self.title_panel, title_rect)
+        self._text(screen,self.title_font,"WHEEL OF FORTUNE",(255, 205, 35),title_rect.centery)
+
+        # Draw the bottom instruction panel
+        bottom_rect = self.bottom_panel.get_rect(midbottom=(WINDOWWIDTH // 2, WINDOWHEIGHT + 25))
         if self.state == 'idle' and self.age >= self.INPUT_DELAY:
-            self._text(screen, self.hint_font, 'Press SPACE or click to spin',
-                       (255, 255, 255), bottom_y)
+            screen.blit(self.bottom_panel, bottom_rect)
+            self._text(screen,self.hint_font,"PRESS SPACE TO SPIN",(255, 245, 220),bottom_rect.centery)
         elif self.state == 'result':
-            self._text(screen, self.result_font, self._result_message(),
-                       (255, 215, 0), bottom_y)
+            screen.blit(self.bottom_panel, bottom_rect)
+            self._text(screen,self.result_font,self._result_message(),(255, 205, 35),bottom_rect.centery)
 
     # fb.8 : Boucle bloquante. Renvoie les gains au main.
     def run(self, screen, clock):
