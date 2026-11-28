@@ -135,7 +135,7 @@ LAUNCHER_BY_WORLD = {'pub': 'cannon',
                       'cave': 'flame'}
 
 # settings.13 — Roue de la fortune (affichée juste avant le Game Over).
-WHEEL_GOLD_VISITS_REQUIRED = 2                       # Passages en cité d'or (par partie) pour débloquer la roue.
+WHEEL_GOLD_VISITS_REQUIRED = 1                       # Passages en cité d'or (par partie) pour débloquer la roue.
 WHEEL_FILE = ASSETS / 'wheel' / 'wheel.png'           # Images à copier dans assets/wheel/ (renommées sans accents).
 WHEEL_POINTER_FILE = ASSETS / 'wheel' / 'arrow.png'
 WHEEL_DIAMETER = 400                                 # Diamètre de la roue à l'écran (px).
